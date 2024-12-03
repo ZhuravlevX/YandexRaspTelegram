@@ -1,2 +1,2 @@
-# YaRaspTelegram
+# YaRaspTelegram (Python)
  
