@@ -2,8 +2,10 @@ from datetime import datetime
 import time
 import requests
 
+api_key = "key"
+
 rasp = requests.get(
-    "https://api.rasp.yandex.net/v3.0/search?apikey=f6e22679-19c4-4979-9a23-43e4b96f163c&from=s9601636&to=s2000003&lang=ru_RU&date=2024-12-02T23:25:41.014Z&transport_types=suburban"
+    "https://api.rasp.yandex.net/v3.0/search?apikey={api_key}&lang=ru_RU&date=2024-12-02T23:25:41.014Z&transport_types=suburban"
 )
 
 trains = rasp.json()["segments"]
