@@ -32,7 +32,7 @@
   "keyToString": {
     "Python.34.executor": "Run",
     "Python.main.executor": "Run",
-    "Python.maintest.executor": "Run",
+    "Python.maintest.executor": "Debug",
     "Python.train.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -41,6 +41,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Danil\Documents\Projects\YaRaspTelegram" />
       <recent name="C:\Users\Danil\Documents\Projects\YaRaspTelegram\functions" />
     </key>
   </component>
