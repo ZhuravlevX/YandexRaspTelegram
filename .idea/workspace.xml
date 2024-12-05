@@ -31,12 +31,14 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Python.34.executor": "Run",
+    "Python.find.executor": "Run",
     "Python.main.executor": "Run",
     "Python.maintest.executor": "Debug",
     "Python.train.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "last_opened_file_path": "C:/Users/Danil/Documents/Projects/YaRaspTelegram"
+    "last_opened_file_path": "C:/Users/Danil/Documents/Projects/YaRaspTelegram",
+    "settings.editor.selected.configurable": "preferences.pluginManager"
   }
 }]]></component>
   <component name="RecentsManager">
