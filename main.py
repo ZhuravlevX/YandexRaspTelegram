@@ -7,6 +7,7 @@ import asyncio
 import random
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto
+import logging
 
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
@@ -18,18 +19,21 @@ api_url = f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex
 bot = Bot(token=token_bot)
 dp = Dispatcher(bot)
 
+logging.basicConfig(level=logging.INFO)
 
 image_urls = [
     'https://rozklad.spb.ru/images/articles/dlya-chego-nuzhna-elektrichka.jpg',
     'https://www.msk-guide.ru/img/11971/MskGuide.ru_165366big.jpg',
     'https://s0.rbk.ru/v6_top_pics/media/img/0/76/756708342242760.jpg',
-    'https://il.vgoroden.ru/l1fld9iyzhr5u_13xgtnz.jpeg',
-    'https://tmholding.ru/upload/iblock/9ef/9ef8fa7cb1c2c46d3188a312d6cb5d9a.jpg'
+    'https://tmholding.ru/upload/iblock/9ef/9ef8fa7cb1c2c46d3188a312d6cb5d9a.jpg',
+    'https://moscowchanges.ru/wp-content/uploads/2019/10/IMG_0485.jpg',
+    'https://i.ytimg.com/vi/Rqy7pN_ArXY/maxresdefault.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/a/a0/ED2T-0041-hero.jpg',
+    'https://railgallery.ru/photo/00/34/29/34297.jpg'
 ]
 
-
-auto_update = True
-auto_update_active = False
+auto_update_users = {}
+current_messages = {}
 
 def get_trains():
     date = datetime.now().strftime('%Y-%m-%d')
@@ -78,22 +82,22 @@ def get_trains():
     else:
         return None
 
-
-async def update_trains(message: types.Message):
-    global auto_update, auto_update_active
+async def update_trains(message: types.Message, user_id: int):
+    global auto_update_users, current_messages
     remaining_time = 60
-    auto_update_active = True
+    auto_update_users[user_id] = True
+    current_messages[user_id] = message
 
     for i in range(60):
         current_time = datetime.now().strftime('%H:%M')
         train_info = get_trains()
         random_image = random.choice(image_urls)
 
-        if not auto_update:
-            train_info += f"\n🚆🚫<b>Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
+        if not auto_update_users[user_id]:
+            train_info += f"\n🚆🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
             media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
             await message.edit_media(media)
-            auto_update_active = False
+            auto_update_users[user_id] = False
             return
 
         if train_info:
@@ -105,7 +109,7 @@ async def update_trains(message: types.Message):
 
             train_info += additional_text
             keyboard = InlineKeyboardMarkup().add(
-                InlineKeyboardButton("🚫 | Отменить автообновление", callback_data="cancel_update"))
+                InlineKeyboardButton("🚫 | Отменить автообновление", callback_data=f"cancel_update_{user_id}"))
             media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
             await message.edit_media(media, reply_markup=keyboard)
         else:
@@ -114,33 +118,51 @@ async def update_trains(message: types.Message):
                 parse_mode='HTML')
         await asyncio.sleep(60)
 
-    auto_update_active = False
+    auto_update_users[user_id] = False
 
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-    await message.reply("Привет! Введите команду /trains, чтобы получить расписание поездов.")
-
+    keyboard = InlineKeyboardMarkup().add(
+        InlineKeyboardButton("⬅ | Указать маршрут", callback_data="button1"),
+        InlineKeyboardButton("📋 | Узнать расписание", callback_data="button2")
+    )
+    random_image = random.choice(image_urls)
+    await message.answer_photo(photo=random_image, caption="📋 <b>Расписание пригородных электричек и экспрессов</b>\n\n"
+                               "Данный бот позволяет вам быстро узнать расписание об вашем поезде. Для этого нужно лишь указать откуда и куда вам надо приехать и появиться полная информация об ближащих пригородных электричек и поездах.\n\n"
+                               "Для того, чтобы изменить или узнать расписание по текущим указаниям маршрута, нажмите кнопки ниже.", parse_mode='HTML', reply_markup=keyboard)
 
 @dp.message_handler(commands=['trains'])
 async def send_trains(message: types.Message):
-    global auto_update, auto_update_active
+    global auto_update_users, current_messages
+    user_id = message.from_user.id
 
-    if auto_update_active:
+    if auto_update_users.get(user_id, False):
         await message.reply("🚆📋 <b>Расписание с автообновление на данный момент активно. Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>", parse_mode='HTML')
         return
 
-    auto_update = True
     initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
-    await update_trains(initial_message)
+    await update_trains(initial_message, user_id)
 
-
-@dp.callback_query_handler(lambda c: c.data == 'cancel_update')
+@dp.callback_query_handler(lambda c: c.data.startswith('cancel_update_'))
 async def cancel_update(callback_query: types.CallbackQuery):
-    global auto_update
-    auto_update = False
+    global auto_update_users
+    user_id = int(callback_query.data.split('_')[-1])
+    auto_update_users[user_id] = False
     await bot.answer_callback_query(callback_query.id,
     text="🚫⌛ Автообновление было отменено, учтите что данные могут быть неактуальными. Отмена произойдет в течении минуты.")
     await bot.edit_message_reply_markup(callback_query.message.chat.id, callback_query.message.message_id, reply_markup=None)
 
+@dp.callback_query_handler(lambda c: c.data == "button2")
+async def handle_button2(callback_query: types.CallbackQuery):
+    await send_trains(callback_query.message)
+
+async def on_shutdown(dp):
+    global current_messages
+    for user_id, message in current_messages.items():
+        current_time = datetime.now().strftime('%H:%M')
+        await bot.send_message(message.chat.id, f"\n🚆🚫 <b>Бот остановил свою работу. Это связано с техническими работами и ошибками. Последнее автообновление вашего расписания было в {current_time}. Будьте внимательны и следите за расписанием!</b>", parse_mode='HTML')
+    await dp.storage.close()
+    await dp.storage.wait_closed()
+
 if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp, skip_updates=True, on_shutdown=on_shutdown)
