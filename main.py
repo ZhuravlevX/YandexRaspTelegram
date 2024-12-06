@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import pytz
 import requests
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
 from babel.dates import format_date
 
@@ -180,7 +180,7 @@ async def send_welcome(message: Message):
                                parse_mode='HTML', reply_markup=keyboard)
 
 
-@dp.message(commands=['suburban'])
+@dp.message(Command('suburban'))
 async def send_trains(message: Message):
     global auto_update_users, current_messages
     user_id = message.from_user.id
@@ -234,10 +234,8 @@ async def on_shutdown():
                                f"\n🚆🚫 <b>Бот остановил свою работу. Это связано с техническими работами и ошибками. Последнее автообновление вашего расписания было в {current_time}. Будьте внимательны и следите за расписанием!</b>",
                                parse_mode='HTML')
     await dp.storage.close()
-    await dp.storage.close()
 
 
 if __name__ == '__main__':
     bot = Bot(token=token_bot)
-    dp.start_polling(bot)
-    # find_suburban_code(input())
+    asyncio.run(dp.start_polling(bot))
