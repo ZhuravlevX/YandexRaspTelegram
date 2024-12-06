@@ -1,4 +1,14 @@
 {
     "token_yandex": "92993f33-a5cd-4fa6-9f78-8346c460d9a6",
-    "token_bot": "7651406999:AAGKO-d7W_HfcE5hRKCiO1fo4qKUP_cSGg8"
+    "token_bot": "7651406999:AAGKO-d7W_HfcE5hRKCiO1fo4qKUP_cSGg8",
+    "image_urls": [
+        "https://rozklad.spb.ru/images/articles/dlya-chego-nuzhna-elektrichka.jpg",
+        "https://www.msk-guide.ru/img/11971/MskGuide.ru_165366big.jpg",
+        "https://s0.rbk.ru/v6_top_pics/media/img/0/76/756708342242760.jpg",
+        "https://tmholding.ru/upload/iblock/9ef/9ef8fa7cb1c2c46d3188a312d6cb5d9a.jpg",
+        "https://moscowchanges.ru/wp-content/uploads/2019/10/IMG_0485.jpg",
+        "https://i.ytimg.com/vi/Rqy7pN_ArXY/maxresdefault.jpg",
+        "https://upload.wikimedia.org/wikipedia/commons/a/a0/ED2T-0041-hero.jpg",
+        "https://railgallery.ru/photo/00/34/29/34297.jpg"
+    ]
 }

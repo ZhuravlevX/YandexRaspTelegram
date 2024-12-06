@@ -1,11 +1,9 @@
-# from functions.find import find_suburban_code
 import asyncio
 import json
 import locale
 import logging
 import random
 from datetime import datetime, timedelta
-
 import pytz
 import requests
 from aiogram import Bot, Dispatcher, types
@@ -19,23 +17,13 @@ with open('config.json', 'r') as config_file:
     config = json.load(config_file)
 token_yandex = config.get('token_yandex')
 token_bot = config.get('token_bot')
+image_urls = config.get('image_urls')
 
 api_url = f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json'
 
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)
-
-image_urls = [
-    'https://rozklad.spb.ru/images/articles/dlya-chego-nuzhna-elektrichka.jpg',
-    'https://www.msk-guide.ru/img/11971/MskGuide.ru_165366big.jpg',
-    'https://s0.rbk.ru/v6_top_pics/media/img/0/76/756708342242760.jpg',
-    'https://tmholding.ru/upload/iblock/9ef/9ef8fa7cb1c2c46d3188a312d6cb5d9a.jpg',
-    'https://moscowchanges.ru/wp-content/uploads/2019/10/IMG_0485.jpg',
-    'https://i.ytimg.com/vi/Rqy7pN_ArXY/maxresdefault.jpg',
-    'https://upload.wikimedia.org/wikipedia/commons/a/a0/ED2T-0041-hero.jpg',
-    'https://railgallery.ru/photo/00/34/29/34297.jpg'
-]
 
 auto_update_users = {}
 current_messages = {}
