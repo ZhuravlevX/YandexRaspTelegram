@@ -17,7 +17,7 @@ def find_stations() -> dict[str, str]:
         for region in country['regions']:
             for settlement in region['settlements']:
                 for station in settlement['stations']:
-                    if station['transport_type'] == 'train':
+                    if station['transport_type'] != 'train':
                         continue
                     title = station['title'].lower()
                     title = re.sub(r"\W", '', title)
@@ -32,5 +32,5 @@ def find_stations() -> dict[str, str]:
 
 
 def generate_stations_list():
-    with open('../stations.json', 'w', encoding='utf-8') as f:
+    with open('./stations.json', 'w', encoding='utf-8') as f:
         f.write(json.dumps(find_stations(), indent=2, ensure_ascii=False))
