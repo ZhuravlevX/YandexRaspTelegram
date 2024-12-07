@@ -10,13 +10,21 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart, Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
 from babel.dates import format_date
+from dotenv import load_dotenv
+import os
 
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
+load_dotenv()
+token_yandex = os.getenv('TOKEN_YANDEX')
+token_bot = os.getenv('TOKEN_BOT')
+
+
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
-token_yandex = config.get('token_yandex')
-token_bot = config.get('token_bot')
+# token_yandex = config.get('token_yandex')
+# token_bot = config.get('token_bot')
+
 image_urls = config.get('image_urls')
 
 api_url = f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json'
@@ -30,7 +38,6 @@ current_messages = {}
 
 from_station = "s9600216"
 to_station = "s2000005"
-
 
 # def find_suburban_code(station_title):
 #     response = requests.get(api_url)
