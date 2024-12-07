@@ -13,9 +13,12 @@ from babel.dates import format_date
 from dotenv import load_dotenv
 import os
 
+from src.find_station import find_station_code
+
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 load_dotenv()
+
 token_yandex = os.getenv('TOKEN_YANDEX')
 token_bot = os.getenv('TOKEN_BOT')
 
@@ -192,12 +195,46 @@ async def send_trains(message: Message):
     user_id = message.from_user.id
 
     if auto_update_users.get(user_id, False):
-        await message.reply(
-            "🚆📋 <b>Расписание с автообновление на данный момент активно. Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
-            parse_mode='HTML')
+        await message.reply("🚆📋 <b>Расписание с автообновление на данный момент активно."
+                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>", parse_mode='HTML')
         return
     initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
     await update_trains(initial_message, user_id)
+
+
+async def get_stations(message: Message, prompt: str):
+    await message.reply(prompt, parse_mode='HTML')
+    response = await bot.wait_for('message')
+    return response.text
+
+async def find_route(message: Message):
+    global auto_update_users, current_messages
+    user_id = message.from_user.id
+
+    if auto_update_users.get(user_id, False):
+        await message.reply(
+            "🚆🛃 <b>Вы не можете изменить маршрут, пока у вас активно автообновление предыдущего расписания."
+            "Пожалуйста, отключите текущее автообновление перед изменением маршрута.</b>",
+            parse_mode='HTML'
+        )
+        return
+    else:
+        from_station = await get_stations(message, "🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь</b>")
+        to_station = await get_stations(message, "🚆🛃 <b>Введите название станции или платформы КУДА вы едете</b>")
+
+        from_station_code = find_station_code(from_station)
+        to_station_code = find_station_code(to_station)
+
+        if not from_station_code:
+            await message.reply(f"🚆🛃 <b>Станция '{from_station}' не найдена. Пожалуйста, укажите корректное название станции.</b>", parse_mode='HTML')
+        elif not to_station_code:
+            await message.reply(f"🚆🛃 <b>Станция '{to_station}' не найдена. Пожалуйста, укажите корректное название станции.</b>", parse_mode='HTML')
+        else:
+            await message.reply(
+                f"🚆🛃 <b>Маршрут установлен от станции '{from_station}' до станции '{to_station}'. Получаем расписание...</b>",
+                parse_mode='HTML'
+            )
+            await update_trains(message, user_id)
 
 
 @dp.callback_query(lambda c: c.data.startswith('cancel_update_'))
@@ -213,6 +250,10 @@ async def cancel_update(callback_query: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery):
     await send_trains(callback_query.message)
+
+@dp.callback_query(lambda c: c.data == "find_route")
+async def handle_send_suburban(callback_query: types.CallbackQuery):
+    await find_route(callback_query.message)
 
 
 # async def on_shutdown():
