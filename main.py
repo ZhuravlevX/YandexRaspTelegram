@@ -28,21 +28,21 @@ logging.basicConfig(level=logging.INFO)
 auto_update_users = {}
 current_messages = {}
 
-from_station = "s9601636"
-to_station = "s2000003"
+from_station = "s9600216"
+to_station = "s2000005"
 
 
-def find_suburban_code(station_title):
-    response = requests.get(api_url)
-    if response.status_code == 200:
-        json_data = response.json()
-        for country in json_data['countries']:
-            for region in country['regions']:
-                for settlement in region['settlements']:
-                    for station in settlement['stations']:
-                        if station['title'] == station_title and station['transport_type'] == 'train':
-                            return station['codes'].get('yandex_code')
-    return None
+# def find_suburban_code(station_title):
+#     response = requests.get(api_url)
+#     if response.status_code == 200:
+#         json_data = response.json()
+#         for country in json_data['countries']:
+#             for region in country['regions']:
+#                 for settlement in region['settlements']:
+#                     for station in settlement['stations']:
+#                         if station['title'] == station_title and station['transport_type'] == 'train':
+#                             return station['codes'].get('yandex_code')
+#     return None
 
 
 def get_trains():
@@ -82,7 +82,8 @@ def get_trains():
             continue
 
         transport_subtype = train["thread"].get("transport_subtype", {}).get("title", "Пригородный поезд")
-        emoji = emoji_map.get(transport_subtype, "🚆")
+        # aeroexpress = train["thread"].get("carrier", {}).get("title", "Пригородный поезд")
+        emoji = emoji_map.get(transport_subtype,  "🚆")
 
         ticket_price = "Неизвестная стоимость"
         if train.get("tickets_info") and train["tickets_info"].get("places"):
@@ -112,7 +113,6 @@ def get_trains():
     else:
         return None
 
-
 async def update_trains(message: Message, user_id: int):
     global auto_update_users, current_messages
     remaining_time = 60
@@ -140,6 +140,7 @@ async def update_trains(message: Message, user_id: int):
 
             else:
                 additional_text = f"\n<b>🚆⌛ Автообновление было завершено в {current_time}, учтите актуальность данного расписания!</b>"
+                auto_update_users[user_id] = False
                 keyboard = None
 
             train_info += additional_text
@@ -147,40 +148,23 @@ async def update_trains(message: Message, user_id: int):
             await message.edit_media(media, reply_markup=keyboard)
         else:
             await message.edit_text(
-                "🚆🚫 <b>На текущий момент, на данную дату или заданному маршруту мы не нашли расписание. Пожалуйста, укажите текущую или же дальнейшую дату для расписания и проверьте, правильно ли вы указали названия станций для маршрута.</b>",
+                "🚆🚫 <b>На текущий момент, на данную дату или заданному маршруту мы не нашли расписание. "
+                "Пожалуйста, укажите текущую или же дальнейшую дату для расписания и проверьте, правильно ли вы указали названия станций для маршрута.</b>",
                 parse_mode='HTML')
         await asyncio.sleep(60)
-
-    auto_update_users[user_id] = False
 
 
 @dp.message(CommandStart())
 async def send_welcome(message: Message):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="button1"),
-                          InlineKeyboardButton(text="📋 | Узнать расписание", callback_data="button2")]])
+                          InlineKeyboardButton(text="📋 | Узнать расписание", callback_data="send_suburban")]])
 
     random_image = random.choice(image_urls)
-    await message.answer_photo(photo=random_image,
-                               caption="📋 <b>Расписание пригородных электричек и экспрессов</b>\n\n"
+    await message.answer_photo(photo=random_image, caption="📋 <b>Расписание пригородных электричек и экспрессов</b>\n\n"
                                        "Данный бот позволяет вам быстро узнать расписание об вашем поезде. Для этого нужно лишь указать откуда и куда вам надо приехать и появиться полная информация об ближайших пригородных электричек и поездах.\n\n"
                                        "Для того, чтобы изменить или узнать расписание по текущим указаниям маршрута, нажмите кнопки ниже.",
                                parse_mode='HTML', reply_markup=keyboard)
-
-
-@dp.message(Command('suburban'))
-async def send_trains(message: Message):
-    global auto_update_users, current_messages
-    user_id = message.from_user.id
-
-    if auto_update_users.get(user_id, False):
-        await message.reply(
-            "🚆📋 <b>Расписание с автообновление на данный момент активно. Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
-            parse_mode='HTML')
-        return
-
-    initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
-    await update_trains(initial_message, user_id)
 
 
 # @dp.message_handler(commands=['route'])
@@ -196,32 +180,44 @@ async def send_trains(message: Message):
 #     await update_trains(initial_message, user_id)
 
 
+async def send_trains(message: Message):
+    global auto_update_users, current_messages
+    user_id = message.from_user.id
+
+    if auto_update_users.get(user_id, False):
+        await message.reply(
+            "🚆📋 <b>Расписание с автообновление на данный момент активно. Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
+            parse_mode='HTML')
+        return
+    initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
+    await update_trains(initial_message, user_id)
+
+
 @dp.callback_query(lambda c: c.data.startswith('cancel_update_'))
 async def cancel_update(callback_query: types.CallbackQuery):
     global auto_update_users
     user_id = int(callback_query.data.split('_')[-1])
     auto_update_users[user_id] = False
-    await bot.answer_callback_query(callback_query.id,
-                                    text="🚫⌛ Автообновление было отменено, учтите что данные могут быть неактуальными. Отмена произойдет в течении минуты.")
-    await bot.edit_message_reply_markup(callback_query.message.business_connection_id,
-                                        callback_query.message.chat.id,
-                                        callback_query.message.message_id,
+    await bot.answer_callback_query(callback_query.id, text="🚫⌛ Автообновление было отменено, учтите что данные могут быть неактуальными. Отмена произойдет в течении минуты.")
+    await bot.edit_message_reply_markup(callback_query.message.business_connection_id, callback_query.message.chat.id, callback_query.message.message_id,
                                         reply_markup=None)
 
 
-@dp.callback_query(lambda c: c.data == "button2")
-async def handle_button2(callback_query: types.CallbackQuery):
+@dp.callback_query(lambda c: c.data == "send_suburban")
+async def handle_send_suburban(callback_query: types.CallbackQuery):
     await send_trains(callback_query.message)
 
 
-async def on_shutdown():
-    global current_messages
-    for user_id, message in current_messages.items():
-        current_time = datetime.now().strftime('%H:%M')
-        await bot.send_message(message.chat.id,
-                               f"\n🚆🚫 <b>Бот остановил свою работу. Это связано с техническими работами и ошибками. Последнее автообновление вашего расписания было в {current_time}. Будьте внимательны и следите за расписанием!</b>",
-                               parse_mode='HTML')
-    await dp.storage.close()
+# async def on_shutdown():
+#     global current_messages
+#     for user_id, message in current_messages.items():
+#         current_time = datetime.now().strftime('%H:%M')
+#         await bot.send_message(message.chat.id, f"\n🚆🚫 <b>Бот остановил свою работу. "
+#                                f"Это связано с техническими работами и ошибками. "
+#                                f"Последнее автообновление вашего расписания было в {current_time}. "
+#                                f"Будьте внимательны и следите за расписанием!</b>",
+#                                parse_mode='HTML')
+#     await dp.storage.close()
 
 
 if __name__ == '__main__':
