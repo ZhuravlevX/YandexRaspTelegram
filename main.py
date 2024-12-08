@@ -18,7 +18,6 @@ from src.find_station import find_station_code
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 load_dotenv()
-
 token_yandex = os.getenv('TOKEN_YANDEX')
 token_bot = os.getenv('TOKEN_BOT')
 
@@ -27,7 +26,6 @@ with open('config.json', 'r') as config_file:
     config = json.load(config_file)
 # token_yandex = config.get('token_yandex')
 # token_bot = config.get('token_bot')
-
 image_urls = config.get('image_urls')
 
 api_url = f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json'
@@ -167,7 +165,7 @@ async def update_trains(message: Message, user_id: int):
 @dp.message(CommandStart())
 async def send_welcome(message: Message):
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="button1"),
+        inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"),
                           InlineKeyboardButton(text="📋 | Узнать расписание", callback_data="send_suburban")]])
 
     random_image = random.choice(image_urls)
@@ -202,41 +200,6 @@ async def send_trains(message: Message):
     await update_trains(initial_message, user_id)
 
 
-async def get_stations(message: Message, prompt: str):
-    await message.reply(prompt, parse_mode='HTML')
-    response = await bot.wait_for('message')
-    return response.text
-
-async def find_route(message: Message):
-    global auto_update_users, current_messages
-    user_id = message.from_user.id
-
-    if auto_update_users.get(user_id, False):
-        await message.reply(
-            "🚆🛃 <b>Вы не можете изменить маршрут, пока у вас активно автообновление предыдущего расписания."
-            "Пожалуйста, отключите текущее автообновление перед изменением маршрута.</b>",
-            parse_mode='HTML'
-        )
-        return
-    else:
-        from_station = await get_stations(message, "🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь</b>")
-        to_station = await get_stations(message, "🚆🛃 <b>Введите название станции или платформы КУДА вы едете</b>")
-
-        from_station_code = find_station_code(from_station)
-        to_station_code = find_station_code(to_station)
-
-        if not from_station_code:
-            await message.reply(f"🚆🛃 <b>Станция '{from_station}' не найдена. Пожалуйста, укажите корректное название станции.</b>", parse_mode='HTML')
-        elif not to_station_code:
-            await message.reply(f"🚆🛃 <b>Станция '{to_station}' не найдена. Пожалуйста, укажите корректное название станции.</b>", parse_mode='HTML')
-        else:
-            await message.reply(
-                f"🚆🛃 <b>Маршрут установлен от станции '{from_station}' до станции '{to_station}'. Получаем расписание...</b>",
-                parse_mode='HTML'
-            )
-            await update_trains(message, user_id)
-
-
 @dp.callback_query(lambda c: c.data.startswith('cancel_update_'))
 async def cancel_update(callback_query: types.CallbackQuery):
     global auto_update_users
@@ -251,9 +214,9 @@ async def cancel_update(callback_query: types.CallbackQuery):
 async def handle_send_suburban(callback_query: types.CallbackQuery):
     await send_trains(callback_query.message)
 
-@dp.callback_query(lambda c: c.data == "find_route")
-async def handle_send_suburban(callback_query: types.CallbackQuery):
-    await find_route(callback_query.message)
+# @dp.callback_query(lambda c: c.data == "find_route")
+# async def handle_send_suburban(callback_query: types.CallbackQuery):
+#     await find_route(callback_query.message)
 
 
 # async def on_shutdown():
