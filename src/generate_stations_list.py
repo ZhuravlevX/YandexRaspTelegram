@@ -1,15 +1,21 @@
 import json
+import os
 import re
+from typing import Any
+
 import requests
+from dotenv import load_dotenv
 
-from main import token_yandex
+load_dotenv()
 
 
-def find_stations() -> dict[str, str]:
+def find_stations() -> dict[str, dict[str, str | Any]]:
     response = requests.get(
-        f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json')
+        f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={os.getenv("TOKEN_YANDEX")}&lang=ru_RU&format=json')
+
     if response.status_code != 200:
         raise Exception('Failed to get station list')
+
     stations_list = response.json()
     stations = {}
 
@@ -25,8 +31,13 @@ def find_stations() -> dict[str, str]:
                     code = station['codes']['yandex_code']
 
                     if title in stations:
-                        title += code
-                    stations[title] = code
+                        title += '_' + code
+
+                    stations[title] = {
+                        "title": station['title'],
+                        "code": code,
+                        "region": region['title'],
+                    }
 
     return stations
 
@@ -34,3 +45,7 @@ def find_stations() -> dict[str, str]:
 def generate_stations_list():
     with open('./stations.json', 'w', encoding='utf-8') as f:
         f.write(json.dumps(find_stations(), indent=2, ensure_ascii=False))
+
+
+if __name__ == '__main__':
+    generate_stations_list()
