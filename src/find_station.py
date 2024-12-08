@@ -3,7 +3,7 @@ import os.path
 import re
 from typing import Union
 
-from generate_stations_list import generate_stations_list
+from src.generate_stations_list import generate_stations_list
 
 
 def find_station_code(title: str) -> Union[str, None]:
