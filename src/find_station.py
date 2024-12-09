@@ -1,7 +1,6 @@
 import json
 import os.path
 import re
-from typing import Union, List, Any
 
 from src.generate_stations_list import generate_stations_list
 
