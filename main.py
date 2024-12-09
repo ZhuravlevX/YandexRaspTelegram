@@ -40,18 +40,6 @@ current_messages = {}
 from_station = "s9600216"
 to_station = "s2000005"
 
-# def find_suburban_code(station_title):
-#     response = requests.get(api_url)
-#     if response.status_code == 200:
-#         json_data = response.json()
-#         for country in json_data['countries']:
-#             for region in country['regions']:
-#                 for settlement in region['settlements']:
-#                     for station in settlement['stations']:
-#                         if station['title'] == station_title and station['transport_type'] == 'train':
-#                             return station['codes'].get('yandex_code')
-#     return None
-
 
 def get_trains():
     date = datetime.now().strftime('%Y-%m-%d')
@@ -213,10 +201,6 @@ async def cancel_update(callback_query: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery):
     await send_trains(callback_query.message)
-
-# @dp.callback_query(lambda c: c.data == "find_route")
-# async def handle_send_suburban(callback_query: types.CallbackQuery):
-#     await find_route(callback_query.message)
 
 
 # async def on_shutdown():
