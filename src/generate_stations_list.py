@@ -7,11 +7,17 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+token_yandex = os.getenv('TOKEN_YANDEX')
+token_bot = os.getenv('TOKEN_BOT')
 
+# with open('config.json', 'r') as config_file:
+#     config = json.load(config_file)
+# token_yandex = config.get('token_yandex')
+# token_bot = config.get('token_bot')
 
 def find_stations() -> dict[str, dict[str, str | Any]]:
     response = requests.get(
-        f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={os.getenv("TOKEN_YANDEX")}&lang=ru_RU&format=json')
+        f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json')
 
     if response.status_code != 200:
         raise Exception('Failed to get station list')
