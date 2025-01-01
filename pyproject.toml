@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "yandexrasptelegram"
 version = "0.1.0"
-description = ""
+description = "Creates a Telegram bot to display up-to-date information about train departures and arrivals based on Yandex API."
 authors = ["ZhuravlevX", "KryptonFox"]
 license = "MIT"
 readme = "README.md"
