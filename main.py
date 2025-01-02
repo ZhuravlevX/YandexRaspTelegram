@@ -37,8 +37,8 @@ logging.basicConfig(level=logging.INFO)
 auto_update_users = {}
 current_messages = {}
 
-from_station = "s9600212"
-to_station = "s9603093"
+from_station = "s2000005"
+to_station = "s9600216"
 
 
 def get_trains():
@@ -81,8 +81,8 @@ def get_trains():
             continue
 
         transport_subtype = train["thread"].get("transport_subtype", {}).get("title", "Пригородный поезд")
-        # aeroexpress = train["thread"].get("carrier", {}).get("title", "Пригородный поезд")
-        emoji = emoji_map.get(transport_subtype,  "🚆")
+        carrier = train["thread"].get("carrier", {}).get("title", {})
+        emoji = emoji_map.get(carrier, emoji_map.get(transport_subtype,  "🚆"))
 
         ticket_price = "Неизвестная стоимость"
         if train.get("tickets_info") and train["tickets_info"].get("places"):
@@ -157,7 +157,7 @@ async def update_trains(message: Message, user_id: int):
 async def send_welcome(message: Message):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"),
-                          InlineKeyboardButton(text="📋 | Узнать расписание", callback_data="send_suburban")]])
+                          InlineKeyboardButton(text="🚆 | Узнать расписание электричек", callback_data="send_suburban")]])
 
     random_image = random.choice(image_urls)
     await message.answer_photo(photo=random_image, caption="📋 <b>Расписание пригородных электричек и экспрессов</b>\n\n"
