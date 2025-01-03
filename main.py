@@ -62,13 +62,15 @@ def get_trains():
 
     emoji_map = {
         "Экспресс": "🚅",
-        "экспресс РЭКС": "🚅",
+        "экспресс РЭКС": "🚅🐶",
+        "«Грушинский экспресс»": "🚅🍐",
         "Пригородный поезд": "🚆",
         "Стандарт плюс": "🚆✳️",
         "Ласточка": "🚆🕊",
         "Ласточка «Экспресс»": "🚅🕊",
         "Ласточка «Экспресс»  - состав 5 вагонов": "🚅🕊5️⃣",
         "Состав 4-6 вагонов": "🚆🔢",
+        "cостав 2-3 вагона": "🚆3️⃣",
         "Иволга": "🚆🐦",
         "Аэроэкспресс": "🚅🔴"
     }
@@ -99,7 +101,7 @@ def get_trains():
             f'<i>Отправляется с {departure_platform} в {dep.hour}:{dep.minute:02d}</i>\n'
             f'<i>С остановками: {train.get("stops", "Неизвестно")}</i>\n'
             f'<i>Стоимость билета: {ticket_price}</i>\n'
-            f'<i>{transport_subtype} | {train["thread"]["carrier"]["title"]}</i>\n'
+            f'<i>{transport_subtype.capitalize()} | {train["thread"]["carrier"]["title"]}</i>\n'
         )
 
         count += 1
@@ -157,7 +159,7 @@ async def update_trains(message: Message, user_id: int):
 async def send_welcome(message: Message):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"),
-                          InlineKeyboardButton(text="🚆 | Узнать расписание электричек", callback_data="send_suburban")]])
+                          InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
 
     random_image = random.choice(image_urls)
     await message.answer_photo(photo=random_image, caption="📋 <b>Расписание пригородных электричек и экспрессов</b>\n\n"
@@ -184,7 +186,7 @@ async def send_trains(message: Message):
     user_id = message.from_user.id
 
     if auto_update_users.get(user_id, False):
-        await message.reply("🚆📋 <b>Расписание с автообновление на данный момент активно."
+        await message.reply("🚆📋 <b>Расписание с автообновление на данный момент активно. "
                             "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>", parse_mode='HTML')
         return
     initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
