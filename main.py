@@ -1,34 +1,29 @@
 import asyncio
-import json
 import locale
 import logging
-import random
-from datetime import datetime, timedelta
-import pytz
-import requests
-from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart, Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
-from babel.dates import format_date
-from dotenv import load_dotenv
 import os
+import random
+from datetime import datetime
 
-from src.find_station import find_station_code
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import CommandStart
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
+from dotenv import load_dotenv
 
-locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+from src.get_train_info import get_train_info
+from src.load_config import load_config
 
 load_dotenv()
+locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+
 token_yandex = os.getenv('TOKEN_YANDEX')
 token_bot = os.getenv('TOKEN_BOT')
 
+config = load_config()
 
-with open('config.json', 'r') as config_file:
-    config = json.load(config_file)
-# token_yandex = config.get('token_yandex')
-# token_bot = config.get('token_bot')
-image_urls = config.get('image_urls')
+image_urls = config.image_urls
 
-api_url = f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json'
+# api_url = f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json'
 
 dp = Dispatcher()
 
@@ -41,79 +36,6 @@ from_station = "s2000005"
 to_station = "s9600216"
 
 
-def get_trains():
-    date = datetime.now().strftime('%Y-%m-%d')
-    formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
-    tomorrow_date = format_date(datetime.now() + timedelta(days=1), format='d MMMM', locale='ru_RU')
-    moscow_tz = pytz.timezone('Europe/Moscow')
-    moscow_now = datetime.now(moscow_tz)
-
-    rasp = requests.get(
-        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
-    )
-    trains = rasp.json().get("segments", [])
-    info = rasp.json().get("search", {})
-
-    train_info = []
-    count = 0
-
-    from_title = info.get("from", {}).get("title", "Не указано")
-    to_title = info.get("to", {}).get("title", "Не указано")
-
-    emoji_map = {
-        "Экспресс": "🚅",
-        "экспресс РЭКС": "🚅🐶",
-        "«Грушинский экспресс»": "🚅🍐",
-        "Пригородный поезд": "🚆",
-        "Стандарт плюс": "🚆✳️",
-        "Ласточка": "🚆🕊",
-        "Ласточка «Экспресс»": "🚅🕊",
-        "Ласточка «Экспресс»  - состав 5 вагонов": "🚅🕊5️⃣",
-        "Состав 4-6 вагонов": "🚆🔢",
-        "cостав 2-3 вагона": "🚆3️⃣",
-        "Иволга": "🚆🐦",
-        "Аэроэкспресс": "🚅🔴"
-    }
-
-    for train in trains:
-        dep = datetime.fromisoformat(train["departure"])
-        # arr = datetime.fromisoformat(train["arrival"])
-
-        if moscow_now.timestamp() > dep.timestamp():
-            continue
-
-        transport_subtype = train["thread"].get("transport_subtype", {}).get("title", "Пригородный поезд")
-        carrier = train["thread"].get("carrier", {}).get("title", {})
-        emoji = emoji_map.get(carrier, emoji_map.get(transport_subtype,  "🚆"))
-
-        ticket_price = "Неизвестная стоимость"
-        if train.get("tickets_info") and train["tickets_info"].get("places"):
-            place_info = train["tickets_info"]["places"][0]
-            if place_info.get("price"):
-                ticket_price = f'{place_info["price"].get("whole", "Неизвестная стоимость")} рублей'
-
-        departure_platform = train.get("departure_platform", "")
-        if not departure_platform:
-            departure_platform = "неизвестного пути"
-
-        train_info.append(
-            f'{emoji} <b>{train["thread"]["number"]} | {train["thread"]["title"]}</b>\n'
-            f'<i>Отправляется с {departure_platform} в {dep.hour}:{dep.minute:02d}</i>\n'
-            f'<i>С остановками: {train.get("stops", "Неизвестно")}</i>\n'
-            f'<i>Стоимость билета: {ticket_price}</i>\n'
-            f'<i>{transport_subtype.capitalize()} | {train["thread"]["carrier"]["title"]}</i>\n'
-        )
-
-        count += 1
-        if count >= 3:
-            break
-
-    if train_info:
-        return f"📋 <b>Расписание поездов от \"{from_title}\" до \"{to_title}\" на {formatted_date} по {tomorrow_date}</b>\n\n" + "\n".join(
-            train_info)
-    else:
-        return None
-
 async def update_trains(message: Message, user_id: int):
     global auto_update_users, current_messages
     remaining_time = 60
@@ -122,7 +44,7 @@ async def update_trains(message: Message, user_id: int):
 
     for i in range(60):
         current_time = datetime.now().strftime('%H:%M')
-        train_info = get_trains()
+        train_info = get_train_info(from_station, to_station)
         random_image = random.choice(image_urls)
 
         if not auto_update_users[user_id]:
@@ -162,7 +84,8 @@ async def send_welcome(message: Message):
                           InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
 
     random_image = random.choice(image_urls)
-    await message.answer_photo(photo=random_image, caption="📋 <b>Расписание пригородных электричек и экспрессов</b>\n\n"
+    await message.answer_photo(photo=random_image,
+                               caption="📋 <b>Расписание пригородных электричек и экспрессов</b>\n\n"
                                        "Данный бот позволяет вам быстро узнать расписание об вашем поезде. Для этого нужно лишь указать откуда и куда вам надо приехать и появиться полная информация об ближайших пригородных электричек и поездах.\n\n"
                                        "Для того, чтобы изменить или узнать расписание по текущим указаниям маршрута, нажмите кнопки ниже.",
                                parse_mode='HTML', reply_markup=keyboard)
@@ -187,7 +110,8 @@ async def send_trains(message: Message):
 
     if auto_update_users.get(user_id, False):
         await message.reply("🚆📋 <b>Расписание с автообновление на данный момент активно. "
-                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>", parse_mode='HTML')
+                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
+                            parse_mode='HTML')
         return
     initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
     await update_trains(initial_message, user_id)
@@ -198,8 +122,10 @@ async def cancel_update(callback_query: types.CallbackQuery):
     global auto_update_users
     user_id = int(callback_query.data.split('_')[-1])
     auto_update_users[user_id] = False
-    await bot.answer_callback_query(callback_query.id, text="🚫⌛ Автообновление было отменено, учтите что данные могут быть неактуальными. Отмена произойдет в течении минуты.")
-    await bot.edit_message_reply_markup(callback_query.message.business_connection_id, callback_query.message.chat.id, callback_query.message.message_id,
+    await bot.answer_callback_query(callback_query.id,
+                                    text="🚫⌛ Автообновление было отменено, учтите что данные могут быть неактуальными. Отмена произойдет в течении минуты.")
+    await bot.edit_message_reply_markup(callback_query.message.business_connection_id, callback_query.message.chat.id,
+                                        callback_query.message.message_id,
                                         reply_markup=None)
 
 
