@@ -12,7 +12,7 @@ def find_station_code(title: str) -> list[dict[str, str]]:
         generate_stations_list()
 
     search = re.sub(r"\W", '', title.lower().strip())
-    with open('./stations.json', 'r', encoding='utf-8') as f:
+    with open('../stations.json', 'r', encoding='utf-8') as f:
         stations = json.loads(f.read())
 
     for title, station in stations.items():
