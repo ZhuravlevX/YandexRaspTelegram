@@ -6,11 +6,11 @@ from typing import Any
 import requests
 from dotenv import load_dotenv
 
+from src.models.search_stations import SearchStations
+
 load_dotenv()
 token_yandex = os.getenv('TOKEN_YANDEX')
 token_bot = os.getenv('TOKEN_BOT')
-
-
 
 def find_stations() -> dict[str, dict[str, str | Any]]:
     response = requests.get(
@@ -19,34 +19,33 @@ def find_stations() -> dict[str, dict[str, str | Any]]:
     if response.status_code != 200:
         raise Exception('Failed to get station list')
 
-    stations_list = response.json()
+    search_stations = SearchStations(**response.json())
     stations = {}
 
-    for country in stations_list['countries']:
-        for region in country['regions']:
-            for settlement in region['settlements']:
-                for station in settlement['stations']:
-                    if station['transport_type'] != 'train':
+    for country in search_stations.countries:
+        for region in country.regions:
+            for settlement in region.settlements:
+                for station in settlement.stations:
+                    if station.transport_type != 'train':
                         continue
-                    title = station['title'].lower()
+                    title = station.title.lower()
                     title = re.sub(r"\W", '', title)
 
-                    code = station['codes']['yandex_code']
+                    code = station.codes.yandex_code
 
                     if title in stations:
                         title += '_' + code
 
                     stations[title] = {
-                        "title": station['title'],
+                        "title": station.title,
                         "code": code,
-                        "region": region['title'],
+                        "region": region.title,
                     }
-
     return stations
 
 
 def generate_stations_list():
-    with open('./stations.json', 'w', encoding='utf-8') as f:
+    with open('../stations.json', 'w', encoding='utf-8') as f:
         f.write(json.dumps(find_stations(), indent=2, ensure_ascii=False))
 
 

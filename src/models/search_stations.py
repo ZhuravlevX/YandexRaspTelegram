@@ -1,11 +1,37 @@
-import json
-import os
-import re
-from typing import Any
+from __future__ import annotations
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel
 
-import requests
-from dotenv import load_dotenv
+class SearchStations(BaseModel):
+    countries: List[Country]
 
-load_dotenv()
-token_yandex = os.getenv('TOKEN_YANDEX')
-token_bot = os.getenv('TOKEN_BOT')
+class Codes(BaseModel):
+    yandex_code: Optional[str] = None
+
+
+class Station(BaseModel):
+    direction: str
+    codes: Codes
+    station_type: str
+    title: str
+    longitude: float | str
+    transport_type: str
+    latitude: float | str
+
+
+class Settlement(BaseModel):
+    title: str
+    codes: Codes
+    stations: List[Station]
+
+
+class Region(BaseModel):
+    settlements: List[Settlement]
+    codes: Dict[str, Any]
+    title: str
+
+class Country(BaseModel):
+    regions: List[Region]
+    codes: Codes
+    title: str
+
