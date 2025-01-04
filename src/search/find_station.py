@@ -2,7 +2,7 @@ import json
 import os.path
 import re
 
-from src.generate_stations_list import generate_stations_list
+from src.search.generate_stations_list import generate_stations_list
 
 
 def find_station_code(title: str) -> list[dict[str, str]]:
