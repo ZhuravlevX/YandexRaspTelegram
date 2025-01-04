@@ -16,7 +16,6 @@ token_bot = os.getenv('TOKEN_BOT')
 
 config = load_config()
 
-
 def get_train_info(from_station: str, to_station: str) -> str:
     date = datetime.now().strftime('%Y-%m-%d')
     formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')

@@ -10,10 +10,7 @@ load_dotenv()
 token_yandex = os.getenv('TOKEN_YANDEX')
 token_bot = os.getenv('TOKEN_BOT')
 
-# with open('config.json', 'r') as config_file:
-#     config = json.load(config_file)
-# token_yandex = config.get('token_yandex')
-# token_bot = config.get('token_bot')
+
 
 def find_stations() -> dict[str, dict[str, str | Any]]:
     response = requests.get(
