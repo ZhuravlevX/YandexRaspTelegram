@@ -36,9 +36,7 @@ def get_train_info(from_station: str, to_station: str) -> str:
     msg = ""
 
     for train in trains:
-        departure_time = datetime.fromisoformat(train.departure)
-
-        if moscow_now.timestamp() > departure_time.timestamp():
+        if moscow_now.timestamp() > train.departure.timestamp():
             continue
 
         transport_subtype = train.thread.transport_subtype.title
@@ -53,7 +51,7 @@ def get_train_info(from_station: str, to_station: str) -> str:
         if not departure_platform:
             departure_platform = "неизвестного пути"
 
-        time_until_arrival = departure_time - moscow_now
+        time_until_arrival = train.departure - moscow_now
         hours, remainder = divmod(time_until_arrival.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         if hours == 0 and minutes == 0:
@@ -67,7 +65,7 @@ def get_train_info(from_station: str, to_station: str) -> str:
             train_info)
 
         this_train_info = f'{emoji} <b>{train.thread.number} | {train.thread.title}</b>\n' \
-                          f'<i>Отправляется с {departure_platform} в {departure_time.hour}:{departure_time.minute:02d}</i>\n' \
+                          f'<i>Отправляется с {departure_platform} в {train.departure.hour}:{train.departure.minute:02d}</i>\n' \
                           f'<i>С остановками: {train.stops}</i>\n' \
                           f'<i>Стоимость билета: {ticket_price}</i>\n' \
                           f'<i>{transport_subtype.capitalize()} | {train.thread.carrier.title}</i>\n' \
