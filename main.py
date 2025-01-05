@@ -7,11 +7,13 @@ from datetime import datetime
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
 from dotenv import load_dotenv
 
 from src.get_train_info import get_train_info
 from src.load_config import load_config
+from src.route_selector import route_selector
 
 load_dotenv()
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
@@ -22,17 +24,19 @@ token_bot = os.getenv('TOKEN_BOT')
 config = load_config()
 image_urls = config.image_urls
 dp = Dispatcher()
+dp.include_router(route_selector)
 
 logging.basicConfig(level=logging.INFO)
 
 auto_update_users = {}
 current_messages = {}
 
-from_station = "s2000003"
-to_station = "s9600786"
+
+# from_station = "s2000003"
+# to_station = "s9600786"
 
 
-async def update_trains(message: Message, user_id: int):
+async def update_trains(message: Message, user_id: int, from_station: str, to_station: str):
     global auto_update_users, current_messages
     remaining_time = 60
     auto_update_users[user_id] = True
@@ -88,30 +92,16 @@ async def send_welcome(message: Message):
                                parse_mode='HTML', reply_markup=keyboard)
 
 
-# @dp.message_handler(commands=['route'])
-# async def find_trains(message: types.Message):
-#     global auto_update_users, current_messages
-#     user_id = message.from_user.id
-#
-#     if auto_update_users.get(user_id, False):
-#         await message.reply("🚆📋 <b>На текущий момент вы не можете изменить маршрут, т.к. активно расписание с автообновление на данный момент. Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>", parse_mode='HTML')
-#         return
-#
-#     initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
-#     await update_trains(initial_message, user_id)
-
-
-async def send_trains(message: Message):
+async def send_trains(message: Message, from_station, to_station):
     global auto_update_users, current_messages
     user_id = message.from_user.id
-
     if auto_update_users.get(user_id, False):
         await message.reply("🚆📋 <b>Расписание с автообновление на данный момент активно. "
                             "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
                             parse_mode='HTML')
         return
     initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
-    await update_trains(initial_message, user_id)
+    await update_trains(initial_message, user_id, from_station, to_station)
 
 
 @dp.callback_query(lambda c: c.data.startswith('cancel_update_'))
@@ -127,8 +117,11 @@ async def cancel_update(callback_query: types.CallbackQuery):
 
 
 @dp.callback_query(lambda c: c.data == "send_suburban")
-async def handle_send_suburban(callback_query: types.CallbackQuery):
-    await send_trains(callback_query.message)
+async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    from_station = data.get('from_station', 's2000003')
+    to_station = data.get('to_station', 's9600786')
+    await send_trains(callback_query.message, from_station, to_station)
 
 
 if __name__ == '__main__':
