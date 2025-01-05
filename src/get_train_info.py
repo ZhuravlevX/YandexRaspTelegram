@@ -34,7 +34,6 @@ def get_train_info(from_station: str, to_station: str) -> str:
 
     train_info = []
     msg = ""
-    count = 0
 
     for train in trains:
         departure_time = datetime.fromisoformat(train.departure)
@@ -46,8 +45,8 @@ def get_train_info(from_station: str, to_station: str) -> str:
         carrier = train.thread.carrier.title
         emoji = config.emoji_map.get(carrier, config.emoji_map.get(transport_subtype, "🚆"))
 
-        ticket_price = "Неизвестная стоимость"
-        if train.tickets_info.places[0].price.whole:
+        ticket_price = "Неизвестно"
+        if train.tickets_info.places:
             ticket_price = f'{train.tickets_info.places[0].price.whole} рублей'
 
         departure_platform = train.departure_platform
