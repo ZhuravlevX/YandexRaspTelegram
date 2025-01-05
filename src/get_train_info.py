@@ -1,11 +1,9 @@
 import os
 from datetime import datetime, timedelta
-
 import pytz
 import requests
 from babel.dates import format_date
 from dotenv import load_dotenv
-
 from src.load_config import load_config
 from src.models.search_response import SearchResponse
 
@@ -56,6 +54,16 @@ def get_train_info(from_station: str, to_station: str) -> str:
         if not departure_platform:
             departure_platform = "неизвестного пути"
 
+        time_until_arrival = departure_time - moscow_now
+        hours, remainder = divmod(time_until_arrival.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        if hours == 0 and minutes == 0:
+            time_until_arrival_str = 'Прибывает на станцию'
+        elif hours == 0:
+            time_until_arrival_str = f'{minutes} минут'
+        else:
+            time_until_arrival_str = f'{hours} час {minutes} минут'
+
         msg = f"📋 <b>Расписание поездов от \"{info.from_.title}\" до \"{info.to.title}\" на {formatted_date} по {tomorrow_date}</b>\n\n" + "\n".join(
             train_info)
 
@@ -63,7 +71,8 @@ def get_train_info(from_station: str, to_station: str) -> str:
                           f'<i>Отправляется с {departure_platform} в {departure_time.hour}:{departure_time.minute:02d}</i>\n' \
                           f'<i>С остановками: {train.stops}</i>\n' \
                           f'<i>Стоимость билета: {ticket_price}</i>\n' \
-                          f'<i>{transport_subtype.capitalize()} | {train.thread.carrier.title}</i>\n'
+                          f'<i>{transport_subtype.capitalize()} | {train.thread.carrier.title}</i>\n' \
+                          f'<b>Время до прибытия: {time_until_arrival_str}</b>\n'
 
         if len(msg + this_train_info) > 900:
             break
@@ -71,5 +80,4 @@ def get_train_info(from_station: str, to_station: str) -> str:
         train_info.append(
             this_train_info
         )
-
     return msg
