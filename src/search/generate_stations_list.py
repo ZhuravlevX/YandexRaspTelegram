@@ -22,7 +22,10 @@ def find_stations() -> dict[str, dict[str, str | Any]]:
     search_stations = SearchStations(**response.json())
     stations = {}
 
+
     for country in search_stations.countries:
+        if  not(country.title == 'Беларусь' or country.title == 'Россия'):
+            continue
         for region in country.regions:
             for settlement in region.settlements:
                 for station in settlement.stations:
@@ -30,7 +33,6 @@ def find_stations() -> dict[str, dict[str, str | Any]]:
                         continue
                     title = station.title.lower()
                     title = re.sub(r"\W", '', title)
-
                     code = station.codes.yandex_code
 
                     if title in stations:
@@ -45,7 +47,7 @@ def find_stations() -> dict[str, dict[str, str | Any]]:
 
 
 def generate_stations_list():
-    with open('../stations.json', 'w', encoding='utf-8') as f:
+    with open('./stations.json', 'w', encoding='utf-8') as f:
         f.write(json.dumps(find_stations(), indent=2, ensure_ascii=False))
 
 
