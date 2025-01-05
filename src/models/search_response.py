@@ -45,8 +45,8 @@ class Thread(BaseModel):
 class From(BaseModel):
     type: str
     title: str
-    short_title: str
-    popular_title: str
+    short_title: Optional[str]
+    popular_title: Optional[str]
     code: str
     station_type: str
     station_type_name: str
@@ -78,14 +78,14 @@ class Codes(BaseModel):
 
 class Carrier(BaseModel):
     code: int
-    title: str
+    title: Optional[str]
     codes: Codes
-    address: str
-    url: str
-    email: str
-    contacts: str
-    phone: str
-    logo: str
+    address: Optional[str]
+    url: Optional[str]
+    email: Optional[str]
+    contacts: Optional[str]
+    phone: Optional[str]
+    logo: Optional[str]
     logo_svg: Any
 
 
