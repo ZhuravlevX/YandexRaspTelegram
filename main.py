@@ -20,11 +20,7 @@ token_yandex = os.getenv('TOKEN_YANDEX')
 token_bot = os.getenv('TOKEN_BOT')
 
 config = load_config()
-
 image_urls = config.image_urls
-
-# api_url = f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json'
-
 dp = Dispatcher()
 
 logging.basicConfig(level=logging.INFO)
@@ -133,18 +129,6 @@ async def cancel_update(callback_query: types.CallbackQuery):
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery):
     await send_trains(callback_query.message)
-
-
-# async def on_shutdown():
-#     global current_messages
-#     for user_id, message in current_messages.items():
-#         current_time = datetime.now().strftime('%H:%M')
-#         await bot.send_message(message.chat.id, f"\n🚆🚫 <b>Бот остановил свою работу. "
-#                                f"Это связано с техническими работами и ошибками. "
-#                                f"Последнее автообновление вашего расписания было в {current_time}. "
-#                                f"Будьте внимательны и следите за расписанием!</b>",
-#                                parse_mode='HTML')
-#     await dp.storage.close()
 
 
 if __name__ == '__main__':
