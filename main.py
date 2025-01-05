@@ -28,8 +28,8 @@ logging.basicConfig(level=logging.INFO)
 auto_update_users = {}
 current_messages = {}
 
-from_station = "s2000005"
-to_station = "s9600216"
+from_station = "s2000003"
+to_station = "s9600786"
 
 
 async def update_trains(message: Message, user_id: int):
@@ -78,7 +78,7 @@ async def update_trains(message: Message, user_id: int):
 async def send_welcome(message: Message):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"),
-                          InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
+                          InlineKeyboardButton(text="🚆 | Электрички", callback_data="send_suburban")]])
 
     random_image = random.choice(image_urls)
     await message.answer_photo(photo=random_image,
