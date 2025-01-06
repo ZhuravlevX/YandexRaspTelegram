@@ -32,10 +32,6 @@ auto_update_users = {}
 current_messages = {}
 
 
-# from_station = "s2000003"
-# to_station = "s9600786"
-
-
 async def update_trains(message: Message, user_id: int, from_station: str, to_station: str):
     global auto_update_users, current_messages
     remaining_time = 60
@@ -80,9 +76,11 @@ async def update_trains(message: Message, user_id: int, from_station: str, to_st
 
 @dp.message(CommandStart())
 async def send_welcome(message: Message):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"),
-                          InlineKeyboardButton(text="🇷🇺 | Выбрать язык", callback_data="lang")],[InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route")],
+                           [InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
+        # inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"),
+        #                   InlineKeyboardButton(text="🇷🇺 | Выбрать язык", callback_data="lang")],[InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
+
 
     random_image = random.choice(image_urls)
     await message.answer_photo(photo=random_image,
