@@ -44,7 +44,7 @@ def get_train_info(from_station: str, to_station: str) -> str:
         emoji = config.emoji_map.get(carrier, config.emoji_map.get(transport_subtype, "🚆"))
 
         ticket_price = "Неизвестно"
-        if train.tickets_info.places:
+        if train.tickets_info:
             ticket_price = f'{train.tickets_info.places[0].price.whole} рублей'
 
         departure_platform = train.departure_platform
