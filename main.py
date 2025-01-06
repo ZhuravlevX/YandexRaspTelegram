@@ -82,8 +82,7 @@ async def update_trains(message: Message, user_id: int, from_station: str, to_st
 async def send_welcome(message: Message):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"),
-                          InlineKeyboardButton(text="🇷🇺 | Язык", callback_data="lang")],[InlineKeyboardButton(text="🚆 | Электрички", callback_data="send_suburban"),
-                          InlineKeyboardButton(text="🚂 | Поезда", callback_data="send_train")]])
+                          InlineKeyboardButton(text="🇷🇺 | Выбрать язык", callback_data="lang")],[InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
 
     random_image = random.choice(image_urls)
     await message.answer_photo(photo=random_image,
