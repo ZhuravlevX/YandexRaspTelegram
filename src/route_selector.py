@@ -31,7 +31,7 @@ def select_stations_keyboard(stations: list[Station],
                              direction: Literal['from'] | Literal['to']) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for index, station in enumerate(stations[:15]):
-        builder.button(text=f'{station.title} {station.region}',
+        builder.button(text=f'🛤 | {station.title} ({station.region})',
                        callback_data=SelectStationCallback(direction=direction, code=station.code))
     builder.adjust(1, repeat=True)
     return builder.as_markup()
@@ -56,7 +56,6 @@ async def from_station_handler(message: Message, state: FSMContext):
         await state.update_data(from_station=stations[0].code)
         await state.set_state(RouteSelectState.to_station_search)
     else:
-        # await state.set_state(RouteSelectState.from_station_second_search)
         await message.reply(
             f'🚆🛃 <b>Найдены следующие станции с похожим названием:</b>',
             parse_mode='HTML', reply_markup=select_stations_keyboard(stations, direction='from'))
