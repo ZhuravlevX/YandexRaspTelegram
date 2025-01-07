@@ -14,7 +14,7 @@ token_bot = os.getenv('TOKEN_BOT')
 
 config = load_config()
 
-def get_train_info(from_station: str, to_station: str) -> str:
+def get_train_info(from_station: str, to_station: str) -> str | None:
     date = datetime.now().strftime('%Y-%m-%d')
     formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
     tomorrow_date = format_date(datetime.now() + timedelta(days=1), format='d MMMM', locale='ru_RU')
@@ -44,7 +44,7 @@ def get_train_info(from_station: str, to_station: str) -> str:
         emoji = config.emoji_map.get(carrier, config.emoji_map.get(transport_subtype, "🚆"))
 
         ticket_price = "Неизвестно"
-        if train.tickets_info:
+        if train.tickets_info and train.tickets_info.places:
             ticket_price = f'{train.tickets_info.places[0].price.whole} рублей'
 
         departure_platform = train.departure_platform
@@ -77,4 +77,4 @@ def get_train_info(from_station: str, to_station: str) -> str:
         train_info.append(
             this_train_info
         )
-    return msg
+    return msg if train_info else None
