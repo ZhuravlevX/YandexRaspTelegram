@@ -4,7 +4,7 @@ import re
 from pydantic import TypeAdapter
 
 from src.models.stations import Station
-from src.search.generate_stations_list import generate_stations_list
+from src.route_select.generate_stations_list import generate_stations_list
 
 
 def find_station(title: str) -> list[Station]:

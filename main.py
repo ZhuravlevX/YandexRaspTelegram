@@ -12,8 +12,8 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMedia
 from dotenv import load_dotenv
 
 from src.get_train_info import get_train_info
-from src.load_config import load_config
-from src.route_selector import route_selector
+from src.utils.load_config import load_config
+from src.route_select.route_selector import route_selector
 
 load_dotenv()
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')

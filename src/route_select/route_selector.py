@@ -10,7 +10,7 @@ from typing import Literal
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from src.models.stations import Station
-from src.search.find_station import find_station
+from src.route_select.find_station import find_station
 
 route_selector = Router()
 

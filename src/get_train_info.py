@@ -4,7 +4,7 @@ import pytz
 import requests
 from babel.dates import format_date
 from dotenv import load_dotenv
-from src.load_config import load_config
+from src.utils.load_config import load_config
 from src.models.search_response import SearchResponse
 
 load_dotenv()
