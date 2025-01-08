@@ -88,13 +88,24 @@ async def send_welcome(message: Message):
 
 
 async def send_trains(message: Message, state: FSMContext):
+    data = await state.get_data()
+    from_station = data.get('from_station')
+    to_station = data.get('to_station')
+
     if (await state.get_data()).get("autoupdate"):
         await message.reply("🚆📋 <b>Расписание с автообновление на данный момент активно. "
                             "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
                             parse_mode='HTML')
         return
-    initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
-    await update_trains(initial_message, state)
+
+    if not from_station or not to_station:
+        await message.reply("🚆🛃 <b>Маршрут следования не был установлен. "
+                            "Пожалуйста, установите маршрут перед поиском расписания следования электричек.</b>",
+                            parse_mode='HTML')
+        return
+    else:
+        initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
+        await update_trains(initial_message, state)
 
 
 @dp.callback_query(lambda c: c.data == 'cancel_update')
