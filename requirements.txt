@@ -4,3 +4,4 @@ pydantic==2.10.4
 python-dotenv==1.0.1
 pytz==2024.2
 requests==2.32.3
+json5==0.10.0
