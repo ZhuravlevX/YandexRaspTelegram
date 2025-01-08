@@ -7,6 +7,7 @@ from datetime import datetime
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
+from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
 from dotenv import load_dotenv
@@ -86,7 +87,7 @@ async def send_welcome(message: Message):
                                        "Для того, чтобы изменить или узнать расписание по текущим указаниям маршрута, нажмите кнопки ниже.",
                                parse_mode='HTML', reply_markup=keyboard)
 
-
+@dp.message(Command('suburban'))
 async def send_trains(message: Message, state: FSMContext):
     data = await state.get_data()
     from_station = data.get('from_station')

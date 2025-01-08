@@ -1,6 +1,7 @@
 from typing import Union
 
 from aiogram import Router
+from aiogram.filters.command import Command
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -42,6 +43,11 @@ async def find_route(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_station_search)
     await c.message.reply('🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь</b>', parse_mode='HTML')
 
+@route_selector.message(Command('route'))
+async def find_route(message: Message, state: FSMContext):
+    await state.set_state(RouteSelectState.from_station_search)
+    await message.reply('🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь</b>', parse_mode='HTML')
+
 
 @route_selector.message(RouteSelectState.from_station_search)
 async def from_station_handler(message: Message, state: FSMContext):
@@ -70,7 +76,7 @@ async def to_station_handler(message: Message, state: FSMContext):
                             parse_mode='HTML')
     elif len(stations) == 1:
         await message.reply(
-            f'🚆🛃 <b>Найдена станция "{stations[0].title}" ({stations[0].region}). Маршрут был установлен.</b>',
+            f'🚆🛃 <b>Найдена станция "{stations[0].title}" ({stations[0].region}). Маршрут следования для расписания был установлен.</b>',
             parse_mode='HTML')
         await state.update_data(to_station=stations[0].code)
         await state.set_state()
@@ -95,7 +101,7 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
         await state.update_data(from_station=callback_data.code)
     elif callback_data.direction == 'to':
         await callback.message.edit_text(
-            f'🚆🛃 <b>Найдена станция "{station.title}" ({station.region}). Маршрут был установлен.</b>',
+            f'🚆🛃 <b>Найдена станция "{station.title}" ({station.region}). Маршрут следования для расписания был установлен.</b>',
             parse_mode='HTML')
         await state.set_state()
         await state.update_data(to_station=callback_data.code)
