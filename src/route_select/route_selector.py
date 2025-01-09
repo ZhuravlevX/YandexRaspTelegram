@@ -1,4 +1,6 @@
-from typing import Union
+import os
+import requests
+from datetime import datetime, timedelta
 
 from aiogram import Router
 from aiogram.filters.command import Command
@@ -14,7 +16,7 @@ from src.models.stations import Station
 from src.route_select.find_station import find_station
 
 route_selector = Router()
-
+token_yandex = os.getenv('TOKEN_YANDEX')
 
 class RouteSelectState(StatesGroup):
     from_station_search = State()
@@ -52,6 +54,7 @@ async def find_route(message: Message, state: FSMContext):
 @route_selector.message(RouteSelectState.from_station_search)
 async def from_station_handler(message: Message, state: FSMContext):
     stations = find_station(message.text.casefold())
+
     if len(stations) == 0:
         await message.reply(f"❌🛃 <b>Станция не найдена. Пожалуйста, укажите корректное название станции.</b>",
                             parse_mode='HTML')
@@ -71,15 +74,29 @@ async def from_station_handler(message: Message, state: FSMContext):
 @route_selector.message(RouteSelectState.to_station_search)
 async def to_station_handler(message: Message, state: FSMContext):
     stations = find_station(message.text.casefold())
+
+    data = await state.get_data()
+    date = datetime.now().strftime('%Y-%m-%d')
+    from_station = data.get('from_station')
+    to_station = data.get('to_station')
+    search_request = requests.get(
+        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
+    )
+
     if len(stations) == 0:
         await message.reply(f'❌🛃 <b>Станция не найдена. Пожалуйста, укажите корректное название станции.</b>',
                             parse_mode='HTML')
     elif len(stations) == 1:
-        await message.reply(
-            f'🚆🛃 <b>Найдена станция "{stations[0].title}" ({stations[0].region}). Маршрут следования для расписания был установлен.</b>',
-            parse_mode='HTML')
         await state.update_data(to_station=stations[0].code)
-        await state.set_state()
+        if not search_request.ok:
+            await message.reply(
+                f'❌🛃 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено. Пожалуйста введите корректную станцию или платформу КУДА вы едете.</b>',
+                parse_mode='HTML')
+        else:
+            await message.reply(
+                f'🚆🛃 <b>Найдена станция "{stations[0].title}" ({stations[0].region}). Маршрут следования для расписания был установлен.</b>',
+                parse_mode='HTML')
+            await state.set_state()
 
     else:
         await message.reply(
@@ -91,6 +108,14 @@ async def to_station_handler(message: Message, state: FSMContext):
 @route_selector.callback_query(SelectStationCallback.filter())
 async def select_station_handler(callback: CallbackQuery, callback_data: SelectStationCallback, state: FSMContext):
     data = await state.get_data()
+
+    date = datetime.now().strftime('%Y-%m-%d')
+    from_station = data.get('from_station')
+    to_station = data.get('to_station')
+    search_request = requests.get(
+        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
+    )
+
     stations_list: list[Station] = data['stations_list']
     station: Station = list(filter(lambda s: s.code == callback_data.code, stations_list))[0]
     if callback_data.direction == 'from':
@@ -100,8 +125,13 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
         await state.set_state(RouteSelectState.to_station_search)
         await state.update_data(from_station=callback_data.code)
     elif callback_data.direction == 'to':
-        await callback.message.edit_text(
-            f'🚆🛃 <b>Найдена станция "{station.title}" ({station.region}). Маршрут следования для расписания был установлен.</b>',
-            parse_mode='HTML')
-        await state.set_state()
-        await state.update_data(to_station=callback_data.code)
+        if not search_request.ok:
+            await state.update_data(to_station=callback_data.code)
+            await callback.message.edit_text(
+                f'❌🛃 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено. Пожалуйста введите корректную станцию или платформу КУДА вы едете.</b>',
+                parse_mode='HTML')
+        else:
+            await callback.message.edit_text(
+                f'🚆🛃 <b>Найдена станция "{station.title}" ({station.region}). Маршрут следования для расписания был установлен.</b>',
+                parse_mode='HTML')
+            await state.set_state()
