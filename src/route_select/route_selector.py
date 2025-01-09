@@ -125,8 +125,8 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
         await state.set_state(RouteSelectState.to_station_search)
         await state.update_data(from_station=callback_data.code)
     elif callback_data.direction == 'to':
-        await state.update_data(to_station=callback_data.code)
         if not search_request.ok:
+            await state.update_data(to_station=callback_data.code)
             await callback.message.edit_text(
                 f'❌🛃 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено. Пожалуйста введите корректную станцию или платформу КУДА вы едете.</b>',
                 parse_mode='HTML')
