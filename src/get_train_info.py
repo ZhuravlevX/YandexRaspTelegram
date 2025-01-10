@@ -14,6 +14,7 @@ token_bot = os.getenv('TOKEN_BOT')
 
 config = load_config()
 
+
 def get_train_info(from_station: str, to_station: str) -> str | None:
     date = datetime.now().strftime('%Y-%m-%d')
     formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
@@ -24,9 +25,6 @@ def get_train_info(from_station: str, to_station: str) -> str | None:
     search_request = requests.get(
         f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
     )
-
-    # if not search_request.ok:
-    #     raise Exception("API request failed")
 
     search = SearchResponse(**search_request.json())
     trains = search.segments
@@ -77,4 +75,6 @@ def get_train_info(from_station: str, to_station: str) -> str | None:
         train_info.append(
             this_train_info
         )
+        msg = f"📋 <b>Расписание поездов от \"{info.from_.title}\" до \"{info.to.title}\" на {formatted_date} по {tomorrow_date}</b>\n\n" + "\n".join(
+            train_info)
     return msg if train_info else None
