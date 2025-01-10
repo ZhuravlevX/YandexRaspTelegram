@@ -19,6 +19,7 @@ from src.get_train_info import get_train_info
 route_selector = Router()
 token_yandex = os.getenv('TOKEN_YANDEX')
 
+
 class RouteSelectState(StatesGroup):
     from_station_search = State()
     from_station_second_search = State()
@@ -27,16 +28,19 @@ class RouteSelectState(StatesGroup):
 
 
 class SelectStationCallback(CallbackData, prefix="select_station"):
-    direction: Literal['from'] | Literal['to']
+    direction: Literal['from', 'to']
     code: str
 
 
-def select_stations_keyboard(stations: list[Station],
-                             direction: Literal['from'] | Literal['to']) -> InlineKeyboardMarkup:
+async def select_stations_keyboard(stations: list[Station],
+                                   direction: Literal['from', 'to'], state: FSMContext) -> InlineKeyboardMarkup:
+    stations_list = {}
     builder = InlineKeyboardBuilder()
     for index, station in enumerate(stations[:15]):
+        stations_list[station.code] = f'"{station.title}" ({station.region})'
         builder.button(text=f'🛤 | {station.title} ({station.region})',
                        callback_data=SelectStationCallback(direction=direction, code=station.code))
+    await state.update_data(stations=stations_list)
     builder.adjust(1, repeat=True)
     return builder.as_markup()
 
@@ -45,6 +49,7 @@ def select_stations_keyboard(stations: list[Station],
 async def find_route(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_station_search)
     await c.message.reply('🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь</b>', parse_mode='HTML')
+
 
 @route_selector.message(Command('route'))
 async def find_route(message: Message, state: FSMContext):
@@ -57,8 +62,9 @@ async def from_station_handler(message: Message, state: FSMContext):
     stations = find_station(message.text.casefold())
 
     if len(stations) == 0:
-        await message.reply(f"❌🛃 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>",
-                            parse_mode='HTML')
+        await message.reply(
+            f"❌🛃 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>",
+            parse_mode='HTML')
     elif len(stations) == 1:
         await message.reply(
             f'🚆🛃 <b>Найдена станция "{stations[0].title}" в {stations[0].region}. Введите название станции или платформы КУДА вы едете.</b>',
@@ -68,8 +74,7 @@ async def from_station_handler(message: Message, state: FSMContext):
     else:
         await message.reply(
             f'🚆🛃 <b>Найдены следующие станции с похожим названием:</b>',
-            parse_mode='HTML', reply_markup=select_stations_keyboard(stations, direction='from'))
-        await state.update_data(stations_list=stations)
+            parse_mode='HTML', reply_markup=(await select_stations_keyboard(stations, direction='from', state=state)))
 
 
 @route_selector.message(RouteSelectState.to_station_search)
@@ -79,11 +84,11 @@ async def to_station_handler(message: Message, state: FSMContext):
     data = await state.get_data()
 
     from_station = data.get('from_station')
-    to_station = data.get('to_station')
 
     if len(stations) == 0:
-        await message.reply(f'❌🛃 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>',
-                            parse_mode='HTML')
+        await message.reply(
+            f'❌🛃 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>',
+            parse_mode='HTML')
     elif len(stations) == 1:
         await state.update_data(to_station=stations[0].code)
         train_info_check = get_train_info(from_station, stations[0].code)
@@ -100,8 +105,7 @@ async def to_station_handler(message: Message, state: FSMContext):
     else:
         await message.reply(
             f'🚆🛃 <b>Найдены следующие станции с похожим названием:</b>',
-            parse_mode='HTML', reply_markup=select_stations_keyboard(stations, direction='to'))
-        await state.update_data(stations_list=stations)
+            parse_mode='HTML', reply_markup=(await select_stations_keyboard(stations, direction='to', state=state)))
 
 
 @route_selector.callback_query(SelectStationCallback.filter())
@@ -109,11 +113,11 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
     data = await state.get_data()
     from_station = data.get('from_station')
 
-    stations_list: list[Station] = data['stations_list']
-    station: Station = list(filter(lambda s: s.code == callback_data.code, stations_list))[0]
+    stations_list = data['stations']
+    station = stations_list[callback_data.code]
     if callback_data.direction == 'from':
         await callback.message.edit_text(
-            f'🚆🛃 <b>Выбрана станция "{station.title}" ({station.region}). Введите название станции или платформы КУДА вы едете.</b>',
+            f'🚆🛃 <b>Выбрана станция {station}. Введите название станции или платформы КУДА вы едете.</b>',
             parse_mode='HTML')
         await state.set_state(RouteSelectState.to_station_search)
         await state.update_data(from_station=callback_data.code)
@@ -122,7 +126,7 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
         train_info_check = get_train_info(from_station, callback_data.code)
         if train_info_check:
             await callback.message.edit_text(
-                f'🚆🛃 <b>Найдена станция "{station.title}" ({station.region}). Маршрут следования для расписания был установлен.</b>',
+                f'🚆🛃 <b>Найдена станция {station}. Маршрут следования для расписания был установлен.</b>',
                 parse_mode='HTML')
             await state.set_state()
         else:

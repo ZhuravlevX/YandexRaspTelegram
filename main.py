@@ -9,8 +9,10 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.mongo import MongoStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
 from dotenv import load_dotenv
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from src.get_train_info import get_train_info
 from src.utils.load_config import load_config
@@ -24,7 +26,8 @@ token_bot = os.getenv('TOKEN_BOT')
 
 config = load_config()
 image_urls = config.image_urls
-dp = Dispatcher()
+dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient(), db_name=os.getenv("MONGO_DB_NAME")).from_url(
+    os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
 
 logging.basicConfig(level=logging.INFO)
@@ -87,6 +90,7 @@ async def send_welcome(message: Message):
                                        "Данный бот позволяет вам быстро узнать расписание об вашей электричке или поездах. Для этого нужно лишь указать ОТКУДА и КУДА вам надо поехать и появиться полная информация об ближайших пригородных электричек и поездах.\n\n"
                                        "Для того, чтобы изменить маршрут следования или узнать расписание по текущему маршруту, нажмите кнопки ниже, либо воспользуйтесь командами /suburban и /route.",
                                parse_mode='HTML', reply_markup=keyboard)
+
 
 @dp.message(Command('suburban'))
 async def send_trains(message: Message, state: FSMContext):
