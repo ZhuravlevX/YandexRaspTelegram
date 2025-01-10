@@ -1,7 +1,17 @@
-# Yandex Rasp Telegram (Python)  
-[![MIT License](https://badgen.net/static/license/MIT/purple)](https://github.com/ZhuravlevX/YandexRaspTelegram/blob/Python/LICENSE) [![Telegram](https://badgen.net/badge/telegram/bot/blue?icon=telegram)](https://t.me/RailwaysTimetableBot) [![Releases](https://badgen.net/badge/releases/v1.0.0/green?icon=github)](https://github.com/ZhuravlevX/YandexRaspTelegram/releases/tag/v1.0.0) [![Yandex](https://badgen.net/badge/yandex/documentation/yellow)](https://yandex.ru/dev/rasp/doc/ru/)
+<p align="center">
+    <h1 align="center">Yandex Rasp Telegram </h1>
+</p>
 
-**Yandex Raspisaniye Telegram** *(Python)* – это бот написанный на языке «Python», позволяющий узнать расписание ближайших электричек или поездов по указанному маршруту пользователя, который он указывает. Поддерживает страны России и Беларуси.  
+<p align="center">
+    <a href="https://status.badgen.net/"><img src="https://badgen.net/badge/telegram/bot/blue?icon=telegram" /></a>
+    <a href="https://github.com/ZhuravlevX/YandexRaspTelegram/releases/tag/v1.0.0"><img src="https://badgen.net/badge/releases/v1.0.0/green?icon=github" /></a>
+    <a href="https://yandex.ru/dev/rasp/doc/ru/"><img src="https://badgen.net/badge/yandex/documentation/yellow" /></a>
+    <a href="https://github.com/ZhuravlevX"><img src="https://badgen.net/badge/github/zhuravlevx/purple?icon&label" /></a>
+    <a href="https://github.com/KryptonFox"><img src="https://badgen.net/badge/github/kryptonfox/blue?icon&label" /></a>
+    <a href="LICENSE.md"><img src="https://badgen.net/static/license/MIT/purple"/></a>
+</p>
+
+**Yandex Raspisaniye Telegram** – это бот написанный на языке «Python», позволяющий узнать расписание ближайших электричек или поездов по указанному маршруту пользователя, который он указывает. Поддерживает страны России и Беларуси.  
 
 ### Откуда берутся данные об расписаниях  
 
