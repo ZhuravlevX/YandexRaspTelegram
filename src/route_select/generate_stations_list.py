@@ -41,6 +41,7 @@ def find_stations() -> dict[str, dict[str, str]]:
                         "title": station.title,
                         "code": code,
                         "region": region.title,
+                        "station_type": station.station_type,
                     }
     return stations
 
