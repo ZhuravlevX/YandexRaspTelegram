@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import datetime, timedelta
 import pytz
@@ -25,6 +26,10 @@ def get_train_info(from_station: str, to_station: str) -> str | None:
     search_request = requests.get(
         f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
     )
+
+    if not search_request.ok:
+        logging.warning(f"API request error {search_request.text}")
+        return None
 
     search = SearchResponse(**search_request.json())
     trains = search.segments
