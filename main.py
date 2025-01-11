@@ -26,7 +26,7 @@ token_bot = os.getenv('TOKEN_BOT')
 
 config = load_config()
 image_urls = config.image_urls
-dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient(), db_name=os.getenv("MONGO_DB_NAME")).from_url(
+dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
 
