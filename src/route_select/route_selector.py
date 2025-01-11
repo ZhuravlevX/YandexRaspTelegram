@@ -22,9 +22,7 @@ token_yandex = os.getenv('TOKEN_YANDEX')
 
 class RouteSelectState(StatesGroup):
     from_station_search = State()
-    from_station_second_search = State()
     to_station_search = State()
-    to_station_second_search = State()
 
 
 class SelectStationCallback(CallbackData, prefix="select_station"):
