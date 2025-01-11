@@ -74,7 +74,7 @@ async def from_station_handler(message: Message, state: FSMContext):
             parse_mode='HTML')
     elif len(stations) == 1:
         await message.reply(
-            f'🚆🛃 <b>Найдена станция "{stations[0].title}" в {stations[0].region}. Введите название станции или платформы КУДА вы едете.</b>',
+            f'🚆🛃 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Введите название станции или платформы КУДА вы едете.</b>',
             parse_mode='HTML')
         await state.update_data(from_station=stations[0].code)
         await state.set_state(RouteSelectState.to_station_search)
@@ -101,7 +101,7 @@ async def to_station_handler(message: Message, state: FSMContext):
         train_info_check = get_train_info(from_station, stations[0].code)
         if train_info_check:
             await message.reply(
-                f'🚆🛃 <b>Найдена станция "{stations[0].title}" ({stations[0].region}). Маршрут следования для расписания был установлен.</b>',
+                f'🚆🛃 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Маршрут следования для расписания был установлен.</b>',
                 parse_mode='HTML')
             await state.set_state()
         else:
