@@ -31,26 +31,25 @@ dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient(), db_name=os.get
 dp.include_router(route_selector)
 
 logging.basicConfig(level=logging.INFO)
+auto_update_users = {}
 
-
-async def update_trains(message: Message, state: FSMContext):
+async def update_trains(message: Message, user_id: int, state: FSMContext):
     remaining_time = 60
     data = await state.get_data()
     from_station = data.get('from_station')
     to_station = data.get('to_station')
-    await state.update_data(autoupdate=True)
+    auto_update_users[user_id] = True
 
     for i in range(60):
         current_time = datetime.now().strftime('%H:%M')
         train_info = get_train_info(from_station, to_station)
         random_image = random.choice(image_urls)
-        data = await state.get_data()
 
-        if not data.get("autoupdate"):
+        if not auto_update_users[user_id]:
             train_info += f"\n🚆🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
             media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
             await message.edit_media(media)
-            await state.update_data(autoupdate=False)
+            auto_update_users[user_id] = False
             return
 
         if train_info:
@@ -58,11 +57,11 @@ async def update_trains(message: Message, state: FSMContext):
                 remaining_time -= 1
                 additional_text = f"\n<b>🚆⌛ Следующее обновление через 1 минуту. Оставшееся время обновления: {remaining_time} минут.</b>"
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-                    text="🚫 | Отменить автообновление", callback_data=f"cancel_update")]])
+                    text="🚫 | Отменить автообновление", callback_data="cancel_update")]])
 
             else:
                 additional_text = f"\n<b>🚆⌛ Автообновление было завершено в {current_time}, учтите актуальность данного расписания!</b>"
-                await state.update_data(autoupdate=False)
+                auto_update_users[user_id] = False
                 keyboard = None
 
             train_info += additional_text
@@ -73,7 +72,7 @@ async def update_trains(message: Message, state: FSMContext):
                 "🚆🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
                 "Пожалуйста, укажите действительный маршрут следования электрички.</b>",
                 parse_mode='HTML')
-            await state.update_data(autoupdate=False)
+            auto_update_users[user_id] = False
             return
         await asyncio.sleep(60)
 
@@ -97,8 +96,9 @@ async def send_trains(message: Message, state: FSMContext):
     data = await state.get_data()
     from_station = data.get('from_station')
     to_station = data.get('to_station')
+    user_id = message.chat.id
 
-    if (await state.get_data()).get("autoupdate"):
+    if auto_update_users.get(user_id, False):
         await message.reply("🚆📋 <b>Расписание с автообновление на данный момент активно. "
                             "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
                             parse_mode='HTML')
@@ -111,12 +111,13 @@ async def send_trains(message: Message, state: FSMContext):
         return
     else:
         initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
-        await update_trains(initial_message, state)
+        await update_trains(initial_message, user_id, state)
 
 
 @dp.callback_query(lambda c: c.data == 'cancel_update')
-async def cancel_update(callback_query: types.CallbackQuery, state: FSMContext):
-    await state.update_data(autoupdate=False)
+async def cancel_update(callback_query: types.CallbackQuery):
+    user_id = callback_query.message.chat.id
+    auto_update_users[user_id] = False
     await bot.answer_callback_query(callback_query.id,
                                     text="🚫⌛ Автообновление было отменено, учтите что данные могут быть неактуальными. Отмена произойдет в течении минуты.")
     await bot.edit_message_reply_markup(callback_query.message.business_connection_id, callback_query.message.chat.id,

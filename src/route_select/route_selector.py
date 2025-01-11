@@ -37,7 +37,7 @@ async def select_stations_keyboard(stations: list[Station],
     stations_list = {}
     builder = InlineKeyboardBuilder()
     for index, station in enumerate(stations[:15]):
-        stations_list[station.code] = f'«{station.title}« ({station.region})'
+        stations_list[station.code] = f'«{station.title}» ({station.region})'
         if station.station_type == "train_station":
             builder.button(text=f'🏫 | {station.title} ({station.region})',
                            callback_data=SelectStationCallback(direction=direction, code=station.code))
