@@ -14,7 +14,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMedia
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from src.get_train_info import get_train_info
+from src.get_suburban_info import get_train_info
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
 

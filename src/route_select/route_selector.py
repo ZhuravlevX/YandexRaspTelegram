@@ -14,7 +14,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from src.models.stations import Station
 from src.route_select.find_station import find_station
-from src.get_train_info import get_train_info
+from src.get_suburban_info import get_train_info
 
 route_selector = Router()
 token_yandex = os.getenv('TOKEN_YANDEX')
