@@ -59,7 +59,7 @@ def get_train_info(from_station: str, to_station: str) -> str | None:
         else:
             time_until_arrival_str = f'{hours} час {minutes} минут'
 
-        msg = f"📋 <b>Расписание поездов от \"{info.from_.title}\" до \"{info.to.title}\" на {formatted_date} по {tomorrow_date}</b>\n\n" + "\n".join(
+        msg = f'📋 <b>Расписание поездов от «{info.from_.title}» до «{info.to.title}» на {formatted_date} по {tomorrow_date}</b>\n\n' + '\n'.join(
             train_info)
 
         this_train_info = f'{emoji} <b>{train.thread.number} | {train.thread.title}</b>\n' \
@@ -75,6 +75,6 @@ def get_train_info(from_station: str, to_station: str) -> str | None:
         train_info.append(
             this_train_info
         )
-        msg = f"📋 <b>Расписание поездов от \"{info.from_.title}\" до \"{info.to.title}\" на {formatted_date} по {tomorrow_date}</b>\n\n" + "\n".join(
+        msg = f'📋 <b>Расписание поездов от «{info.from_.title}» до «{info.to.title}» на {formatted_date} по {tomorrow_date}</b>\n\n' + '\n'.join(
             train_info)
     return msg if train_info else None
