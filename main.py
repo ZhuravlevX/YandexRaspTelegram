@@ -30,7 +30,8 @@ dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient(), db_name=os.get
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    datefmt='%d-%m-%y %H:%M:%S')
 auto_update_users = {}
 
 async def update_trains(message: Message, user_id: int, state: FSMContext):
