@@ -56,20 +56,29 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
             return
 
         if train_info:
-            if i < 59:
-                remaining_time -= 1
-                additional_text = f"\n<b>🚆⌛ Следующее обновление через 1 минуту. Оставшееся время обновления: {remaining_time} минут.</b>"
-                keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-                    text="🚫 | Отменить автообновление", callback_data="cancel_update")]])
+            if data.get('enable_auto_update'):
+                if i < 59:
+                    remaining_time -= 1
+                    additional_text = f"\n<b>🚆⌛ Следующее обновление через 1 минуту. Оставшееся время обновления: {remaining_time} минут.</b>"
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+                        text="🚫 | Отменить автообновление", callback_data="cancel_update")]])
+                else:
+                    additional_text = f"\n<b>🚆⌛ Автообновление было завершено в {current_time}, учтите актуальность данного расписания!</b>"
+                    auto_update_users[user_id] = False
+                    keyboard = None
 
+                train_info += additional_text
+                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                await message.edit_media(media, reply_markup=keyboard)
             else:
-                additional_text = f"\n<b>🚆⌛ Автообновление было завершено в {current_time}, учтите актуальность данного расписания!</b>"
-                auto_update_users[user_id] = False
-                keyboard = None
+                additional_text = f"\n<b>🚉 Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания!</b>"
 
-            train_info += additional_text
-            media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
-            await message.edit_media(media, reply_markup=keyboard)
+                train_info += additional_text
+                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                await message.edit_media(media)
+                auto_update_users[user_id] = False
+                return
+            await asyncio.sleep(60)
         else:
             await message.edit_text(
                 "🚆🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
@@ -77,13 +86,11 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
                 parse_mode='HTML')
             auto_update_users[user_id] = False
             return
-        await asyncio.sleep(60)
-
 
 @dp.message(CommandStart())
 async def send_welcome(message: Message):
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route")],
+        inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"), InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
 
     random_image = random.choice(image_urls)
@@ -92,7 +99,6 @@ async def send_welcome(message: Message):
                                        "Данный бот позволяет вам быстро узнать расписание об вашей электричке или поездах. Для этого нужно лишь указать ОТКУДА и КУДА вам надо поехать и появиться полная информация об ближайших пригородных электричек и поездах.\n\n"
                                        "Для того, чтобы изменить маршрут следования или узнать расписание по текущему маршруту, нажмите кнопки ниже, либо воспользуйтесь командами /suburban и /route.",
                                parse_mode='HTML', reply_markup=keyboard)
-
 
 @dp.message(Command('suburban'))
 async def send_trains(message: Message, state: FSMContext):
@@ -116,7 +122,6 @@ async def send_trains(message: Message, state: FSMContext):
         initial_message = await message.reply("🚆📋 <b>Получаем расписание поездов...</b>", parse_mode='HTML')
         await update_trains(initial_message, user_id, state)
 
-
 @dp.callback_query(lambda c: c.data == 'cancel_update')
 async def cancel_update(callback_query: types.CallbackQuery):
     user_id = callback_query.message.chat.id
@@ -127,10 +132,52 @@ async def cancel_update(callback_query: types.CallbackQuery):
                                         callback_query.message.message_id,
                                         reply_markup=None)
 
-
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_trains(callback_query.message, state)
+
+@dp.callback_query(lambda c: c.data == "enable_auto_update")
+async def handle_enable_auto_update(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    enable_auto_update = data.get('enable_auto_update', False)
+    new_status = not enable_auto_update
+    await state.update_data(enable_auto_update=new_status)
+
+    emoji = "✅" if new_status else "❌"
+    settings_keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=f"{emoji} | Автообновление", callback_data="enable_auto_update"),
+                         InlineKeyboardButton(text="🚮 | Очистка маршрута", callback_data="clear_route")],
+                         [InlineKeyboardButton(text="⬅ | Назад", callback_data="back")]])
+    await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
+                                        message_id=callback_query.message.message_id,
+                                        reply_markup=settings_keyboard)
+
+@dp.callback_query(lambda c: c.data == "settings")
+async def handle_settings(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    enable_auto_update = data.get('enable_auto_update', False)
+    emoji = "✅" if enable_auto_update else "❌"
+    settings_keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=f"{emoji} | Автообновление", callback_data="enable_auto_update"),
+                         InlineKeyboardButton(text="🚮 | Очистка маршрута", callback_data="clear_route")],
+                         [InlineKeyboardButton(text="⬅ | Назад", callback_data="back")]])
+    await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
+                                        message_id=callback_query.message.message_id,
+                                        reply_markup=settings_keyboard)
+
+@dp.callback_query(lambda c: c.data == "clear_route")
+async def clear_route(callback_query: types.CallbackQuery, state: FSMContext):
+    await state.update_data(from_station=None, to_station=None)
+    await bot.send_message(callback_query.message.chat.id, "🚆🚮 <b>Маршрут следования был успешно очищен. Для того, чтобы установить новый маршрут, воспользуйтесь командой /route.</b>", parse_mode='HTML')
+
+@dp.callback_query(lambda c: c.data == "back")
+async def handle_back(callback_query: types.CallbackQuery):
+    main_keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"), InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
+                         [InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
+    await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
+                                        message_id=callback_query.message.message_id,
+                                        reply_markup=main_keyboard)
 
 @dp.message(Command('log'))
 async def send_log_file(message: Message):
