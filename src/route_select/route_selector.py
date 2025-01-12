@@ -42,6 +42,9 @@ async def select_stations_keyboard(stations: list[Station],
         elif station.station_type == "station":
             builder.button(text=f'🚉 | {station.title} ({station.region})',
                            callback_data=SelectStationCallback(direction=direction, code=station.code))
+        elif station.station_type == "airport":
+            builder.button(text=f'🛫 | {station.title} ({station.region})',
+                           callback_data=SelectStationCallback(direction=direction, code=station.code))
         else:
             builder.button(text=f'🛤 | {station.title} ({station.region})',
                            callback_data=SelectStationCallback(direction=direction, code=station.code))

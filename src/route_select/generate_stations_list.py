@@ -28,7 +28,7 @@ def find_stations() -> dict[str, dict[str, str]]:
         for region in country.regions:
             for settlement in region.settlements:
                 for station in settlement.stations:
-                    if station.transport_type != 'train':
+                    if not (station.transport_type == 'train' or station.station_type == 'airport'):
                         continue
                     title = station.title.lower()
                     title = re.sub(r"\W", '', title)
