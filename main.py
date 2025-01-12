@@ -13,6 +13,7 @@ from aiogram.fsm.storage.mongo import MongoStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
+from aiogram.types.input_file import FSInputFile
 
 from src.get_suburban_info import get_train_info
 from src.utils.load_config import load_config
@@ -23,6 +24,7 @@ locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 token_yandex = os.getenv('TOKEN_YANDEX')
 token_bot = os.getenv('TOKEN_BOT')
+admin_id = int(os.getenv('ADMIN_ID'))
 
 config = load_config()
 image_urls = config.image_urls
@@ -130,6 +132,14 @@ async def cancel_update(callback_query: types.CallbackQuery):
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_trains(callback_query.message, state)
 
+@dp.message(Command('log'))
+async def send_log_file(message: Message):
+    if message.from_user.id == admin_id:
+        log_file_path = 'YandexRaspBot-error.log'
+        if os.path.exists(log_file_path):
+            await message.answer_document(FSInputFile(log_file_path), caption="✅⚙ <b>Файл логов был найден, отправляю его вам!</b>", parse_mode='HTML')
+        else:
+            await message.answer("❌⚙ <b>Файл логов не найден.</b>", parse_mode='HTML')
 
 if __name__ == '__main__':
     bot = Bot(token=token_bot)
