@@ -91,7 +91,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
 async def send_welcome(message: Message):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"), InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
-                         [InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
+                         [InlineKeyboardButton(text="📋 | Расписание ", callback_data="schedule")]])
 
     random_image = random.choice(image_urls)
     await message.answer_photo(photo=random_image,
@@ -136,6 +136,12 @@ async def cancel_update(callback_query: types.CallbackQuery):
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_trains(callback_query.message, state)
 
+@dp.callback_query(lambda c: c.data == "schedule")
+async def handle_schedule(callback_query: types.CallbackQuery):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🚉 | Электрички", callback_data="send_suburban"), InlineKeyboardButton(text="🚂 | Поезда", callback_data="send_train")]])
+    await callback_query.message.reply("📋🔍 <b>Выберите то расписание транспорта, которое вам необходимо узнать.</b>", parse_mode='HTML', reply_markup=keyboard)
+
 @dp.callback_query(lambda c: c.data == "enable_auto_update")
 async def handle_enable_auto_update(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
@@ -174,7 +180,7 @@ async def clear_route(callback_query: types.CallbackQuery, state: FSMContext):
 async def handle_back(callback_query: types.CallbackQuery):
     main_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Указать маршрут", callback_data="find_route"), InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
-                         [InlineKeyboardButton(text="🚆 | Расписание электричек", callback_data="send_suburban")]])
+                         [InlineKeyboardButton(text="📋 | Расписание", callback_data="schedule")]])
     await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
                                         message_id=callback_query.message.message_id,
                                         reply_markup=main_keyboard)
