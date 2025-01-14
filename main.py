@@ -16,6 +16,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.types.input_file import FSInputFile
 
 from src.get_suburban_info import get_train_info
+from src.get_suburban_info import get_suburban_info
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
 
@@ -36,7 +37,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
                     datefmt='%d-%m-%y %H:%M:%S')
 auto_update_users = {}
 
-async def update_trains(message: Message, user_id: int, state: FSMContext):
+async def update_suburbans(message: Message, user_id: int, state: FSMContext):
     remaining_time = 60
     data = await state.get_data()
     from_station = data.get('from_station')
@@ -45,7 +46,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
 
     for i in range(60):
         current_time = datetime.now().strftime('%H:%M')
-        train_info = get_train_info(from_station, to_station)
+        train_info = get_suburban_info(from_station, to_station)
         random_image = random.choice(image_urls)
 
         if not auto_update_users[user_id]:
@@ -101,7 +102,7 @@ async def send_welcome(message: Message):
                                parse_mode='HTML', reply_markup=keyboard)
 
 @dp.message(Command('suburban'))
-async def send_trains(message: Message, state: FSMContext):
+async def send_suburbans(message: Message, state: FSMContext):
     data = await state.get_data()
     from_station = data.get('from_station')
     to_station = data.get('to_station')
