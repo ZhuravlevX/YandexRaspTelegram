@@ -19,7 +19,6 @@ config = load_config()
 def get_train_info(from_city: str, to_city: str) -> str | None:
     date = datetime.now().strftime('%Y-%m-%d')
     formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
-    # tomorrow_date = format_date(datetime.now() + timedelta(days=1), format='d MMMM', locale='ru_RU')
     moscow_tz = pytz.timezone('Europe/Moscow')
     moscow_now = datetime.now(moscow_tz)
 
@@ -51,15 +50,15 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
 
         duration = train.duration
         hours, remainder = divmod(duration, 3600)
-        minutes, seconds = divmod(remainder, 60)
+        minutes, _ = divmod(remainder, 60)
         if hours == 0:
             duration_time = f'{minutes} минут'
         else:
-            duration_time = f'{hours} час {minutes} минут'
+            duration_time = f'{int(hours)} час {int(minutes)} минут'
 
         time_until_arrival = train.departure - moscow_now
         hours, remainder = divmod(time_until_arrival.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
+        minutes, _ = divmod(remainder, 60)
         if hours == 0 and minutes == 0:
             time_until_arrival_str = 'Отправляться от вокзала'
         elif hours == 0:
