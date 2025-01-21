@@ -77,7 +77,7 @@ async def select_cities_keyboard(cities: list[City],
 @route_selector.callback_query(lambda c: c.data == 'find_route')
 async def find_route(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_station_search)
-    await c.message.reply('🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь</b>', parse_mode='HTML')
+    await c.message.reply('🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь.</b>', parse_mode='HTML')
 
 
 # @route_selector.message(Command('route'))
@@ -88,7 +88,7 @@ async def find_route(c: CallbackQuery, state: FSMContext):
 @route_selector.callback_query(lambda c: c.data == 'find_route_city')
 async def find_route_city(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_city_search)
-    await c.message.reply('🚂🛃 <b>Введите название города ОТКУДА вы отправляетесь</b>', parse_mode='HTML')
+    await c.message.reply('🚂🛃 <b>Введите название города ОТКУДА вы отправляетесь.</b>', parse_mode='HTML')
 
 
 # @route_selector.message(Command('route'))
@@ -174,13 +174,14 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
                 f'❌🛃 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено. Пожалуйста введите корректное название станции или платформы на вашем направлении КУДА вам нужно прибыть.</b>',
                 parse_mode='HTML')
 
+
 @route_selector.message(RouteSelectState.from_city_search)
 async def from_city_handler(message: Message, state: FSMContext):
     cities = find_city(message.text.casefold())
 
     if len(cities) == 0:
         await message.reply(
-            f"❌🛃 <b>Город с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>",
+            f"❌🛃 <b>Город с таким названием не найден. Пожалуйста, укажите корректное название города.</b>",
             parse_mode='HTML')
     elif len(cities) == 1:
         await message.reply(
@@ -204,7 +205,7 @@ async def to_city_handler(message: Message, state: FSMContext):
 
     if len(cities) == 0:
         await message.reply(
-            f"❌🛃 <b>Город с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>",
+            f"❌🛃 <b>Город с таким названием не найден. Пожалуйста, укажите корректное название города.</b>",
             parse_mode='HTML')
     elif len(cities) == 1:
         await state.update_data(to_city=cities[0].code)
@@ -218,23 +219,22 @@ async def to_city_handler(message: Message, state: FSMContext):
             await message.reply(
                 f'❌🛃 <b>К сожалению при поиске расписания по указанному вашему рейсу следования ничего не было найдено. Пожалуйста введите корректное название города к которым имеется возможность доехать.</b>',
                 parse_mode='HTML')
-
     else:
         await message.reply(
             f'🚂🛃 <b>Найдены следующие города с похожим названием:</b>',
             parse_mode='HTML', reply_markup=(await select_cities_keyboard(cities, direction='to', state=state)))
 
 
-@route_selector.callback_query(SelectStationCallback.filter())
+@route_selector.callback_query(SelectCityCallback.filter())
 async def select_city_handler(callback: CallbackQuery, callback_data: SelectCityCallback, state: FSMContext):
     data = await state.get_data()
     from_city = data.get('from_city')
 
-    city_list = data['cities']
-    cities = city_list[callback_data.code]
+    cities_list = data['cities']
+    city = cities_list[callback_data.code]
     if callback_data.direction == 'from':
         await callback.message.edit_text(
-            f'🚂🛃 <b>Выбран город {cities}. Введите название города КУДА вы едете.</b>',
+            f'🚂🛃 <b>Выбран город {city}. Введите название города КУДА вы едете.</b>',
             parse_mode='HTML')
         await state.set_state(RouteSelectState.to_city_search)
         await state.update_data(from_city=callback_data.code)
@@ -243,7 +243,7 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
         train_info_check = get_train_info(from_city, callback_data.code)
         if train_info_check:
             await callback.message.edit_text(
-                f'🚂🛃 <b>Найден город «{cities[0].region}». Рейс следования для расписания поездов был установлен.</b>',
+                f'🚂🛃 <b>Найден город {city}. Рейс следования для расписания поездов был установлен.</b>',
                 parse_mode='HTML')
             await state.set_state()
         else:
