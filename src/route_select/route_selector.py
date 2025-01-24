@@ -1,9 +1,6 @@
 import os
-import requests
-from datetime import datetime, timedelta
 
 from aiogram import Router
-from aiogram.filters.command import Command
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -79,22 +76,11 @@ async def find_route(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_station_search)
     await c.message.reply('🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь.</b>', parse_mode='HTML')
 
-
-# @route_selector.message(Command('route'))
-# async def find_route(message: Message, state: FSMContext):
-#     await state.set_state(RouteSelectState.from_station_search)
-#     await message.reply('🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь</b>', parse_mode='HTML')
-
 @route_selector.callback_query(lambda c: c.data == 'find_route_city')
 async def find_route_city(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_city_search)
     await c.message.reply('🚂🛃 <b>Введите название города ОТКУДА вы отправляетесь.</b>', parse_mode='HTML')
 
-
-# @route_selector.message(Command('route'))
-# async def find_route(message: Message, state: FSMContext):
-#     await state.set_state(RouteSelectState.from_station_search)
-#     await message.reply('🚆🛃 <b>Введите название станции или платформы ОТКУДА вы отправляетесь</b>', parse_mode='HTML')
 
 
 @route_selector.message(RouteSelectState.from_station_search)
