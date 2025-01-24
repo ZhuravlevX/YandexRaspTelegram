@@ -28,7 +28,8 @@ token_bot = os.getenv('TOKEN_BOT')
 admin_id = int(os.getenv('ADMIN_ID'))
 
 config = load_config()
-image_urls = config.image_urls
+train_urls = config.train_urls
+suburban_urls = config.suburban_urls
 dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
@@ -47,7 +48,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
     for i in range(60):
         current_time = datetime.now().strftime('%H:%M')
         train_info = get_suburban_info(from_station, to_station)
-        random_image = random.choice(image_urls)
+        random_image = random.choice(suburban_urls)
 
         if not auto_update_users[user_id]:
             train_info += f"\n🚆🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
@@ -98,7 +99,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
     for i in range(60):
         current_time = datetime.now().strftime('%H:%M')
         train_info = get_train_info(from_city, to_city)
-        random_image = random.choice(image_urls)
+        random_image = random.choice(train_urls)
 
         if not auto_update_users[user_id]:
             train_info += f"\n🚆🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
@@ -145,7 +146,7 @@ async def send_welcome(message: Message):
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Рейс", callback_data="routes"), InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="📋 | Расписание ", callback_data="schedule")]])
 
-    random_image = random.choice(image_urls)
+    random_image = random.choice(suburban_urls)
     await message.answer_photo(photo=random_image,
                                caption="📋 <b>Расписание пригородных электричек и экспрессов</b>\n\n"
                                        "Данный бот позволяет вам быстро узнать расписание об вашей электричке или поездах. Для этого нужно лишь указать ОТКУДА и КУДА вам надо поехать и появиться полная информация об ближайших пригородных электричек и поездах.\n\n"
