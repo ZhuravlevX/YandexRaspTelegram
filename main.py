@@ -62,22 +62,28 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
                 if i < 59:
                     remaining_time -= 1
                     additional_text = f"\n<b>🚆⌛ Следующее обновление через 1 минуту. Оставшееся время обновления: {remaining_time} минут.</b>"
-                    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-                        text="🚫 | Отменить автообновление", callback_data="cancel_update")]])
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🚫 | Отменить автообновление", callback_data="cancel_update")]
+                    ])
                 else:
-                    additional_text = f"\n<b>🚆⌛ Автообновление было завершено в {current_time}, учтите актуальность данного расписания!</b>"
+                    additional_text = f"\n<b>🚆⌛ Автообновление было завершено в {current_time}, учтите актуальность данного расписания.</b>"
                     auto_update_users[user_id] = False
-                    keyboard = None
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                    ])
 
                 train_info += additional_text
                 media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
                 await message.edit_media(media, reply_markup=keyboard)
             else:
-                additional_text = f"\n<b>🚉 Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания!</b>"
+                additional_text = f"\n<b>🚉 Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания.</b>"
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                ])
 
                 train_info += additional_text
                 media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
-                await message.edit_media(media)
+                await message.edit_media(media, reply_markup=keyboard)
                 auto_update_users[user_id] = False
                 return
             await asyncio.sleep(60)
@@ -113,22 +119,28 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
                 if i < 59:
                     remaining_time -= 1
                     additional_text = f"\n<b>🚆⌛ Следующее обновление через 1 минуту. Оставшееся время обновления: {remaining_time} минут.</b>"
-                    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-                        text="🚫 | Отменить автообновление", callback_data="cancel_update")]])
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🚫 | Отменить автообновление", callback_data="cancel_update")]
+                    ])
                 else:
-                    additional_text = f"\n<b>🚆⌛ Автообновление было завершено в {current_time}, учтите актуальность данного расписания!</b>"
+                    additional_text = f"\n<b>🚆⌛ Автообновление было завершено в {current_time}, учтите актуальность данного расписания.</b>"
                     auto_update_users[user_id] = False
-                    keyboard = None
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                    ])
 
                 train_info += additional_text
                 media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
                 await message.edit_media(media, reply_markup=keyboard)
             else:
-                additional_text = f"\n<b>🚂 Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания!</b>"
+                additional_text = f"\n<b>🚂 Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания.</b>"
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                ])
 
                 train_info += additional_text
                 media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
-                await message.edit_media(media)
+                await message.edit_media(media, reply_markup=keyboard)
                 auto_update_users[user_id] = False
                 return
             await asyncio.sleep(60)
@@ -213,6 +225,11 @@ async def cancel_update(callback_query: types.CallbackQuery):
                                         callback_query.message.message_id,
                                         reply_markup=None)
 
+@dp.callback_query(lambda c: c.data == 'delete_schedule')
+async def delete_schedule(callback_query: types.CallbackQuery):
+    await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
+    await bot.answer_callback_query(callback_query.id, text="🗑 Расписание было удалено.")
+
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_suburbans(callback_query.message, state)
@@ -266,6 +283,7 @@ async def handle_settings(callback_query: types.CallbackQuery, state: FSMContext
 async def clear_route(callback_query: types.CallbackQuery, state: FSMContext):
     await state.update_data(from_station=None, to_station=None, to_city=None, from_city=None)
     await bot.send_message(callback_query.message.chat.id, "🚆🚮 <b>Рейсы были успешно очищен. Для того, чтобы установить новый маршрут, воспользуйтесь командой /route.</b>", parse_mode='HTML')
+
 
 @dp.callback_query(lambda c: c.data == "back")
 async def handle_back(callback_query: types.CallbackQuery):
