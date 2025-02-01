@@ -51,12 +51,16 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
         emoji = config.train_map.get(carrier, config.train_map.get(transport_subtype, "🚂"))
 
         duration = train.duration
-        hours, remainder = divmod(duration, 3600)
+        days, remainder = divmod(duration, 86400)
+        hours, remainder = divmod(remainder, 3600)
         minutes, _ = divmod(remainder, 60)
-        if hours == 0:
-            duration_time = f'{minutes} минут'
-        else:
+
+        if days > 0:
+            duration_time = f'{int(days)} день {int(hours)} час {int(minutes)} минут'
+        elif hours > 0:
             duration_time = f'{int(hours)} час {int(minutes)} минут'
+        else:
+            duration_time = f'{minutes} минут'
 
         time_until_arrival = train.departure - moscow_now
         hours, remainder = divmod(time_until_arrival.seconds, 3600)
