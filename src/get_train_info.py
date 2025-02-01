@@ -46,6 +46,8 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
             transport_subtype = f'{train.thread.transport_subtype.title}'
 
         carrier = train.thread.carrier.title
+        if carrier == "РЖД/ДОСС" and transport_subtype != "«Ласточка»":
+            transport_subtype = "«Сапсан»"
         emoji = config.train_map.get(carrier, config.train_map.get(transport_subtype, "🚂"))
 
         duration = train.duration
