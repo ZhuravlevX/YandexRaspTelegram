@@ -25,7 +25,6 @@ locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 token_yandex = os.getenv('TOKEN_YANDEX')
 token_bot = os.getenv('TOKEN_BOT')
-admin_id = int(os.getenv('ADMIN_ID'))
 
 config = load_config()
 train_urls = config.train_urls
@@ -295,13 +294,39 @@ async def handle_back(callback_query: types.CallbackQuery):
                                         reply_markup=main_keyboard)
 
 @dp.message(Command('log'))
-async def send_log_file(message: Message):
-    if message.from_user.id == admin_id:
+async def send_log_file(message: Message, state: FSMContext):
+    data = await state.get_data()
+    debug_menu = data.get('debug_menu')
+    if debug_menu:
         log_file_path = 'YandexRaspBot-error.log'
         if os.path.exists(log_file_path):
-            await message.answer_document(FSInputFile(log_file_path), caption="✅⚙ <b>Файл логов был найден, отправляю его вам!</b>", parse_mode='HTML')
+            await message.answer_document(FSInputFile(log_file_path), caption="✅⚙ <b>Файл логов был найден, отправляю его вам! Чтобы снова вызвать и получить логи, также воспользуйтесь командой /log.</b>", parse_mode='HTML')
         else:
-            await message.answer("❌⚙ <b>Файл логов не найден.</b>", parse_mode='HTML')
+            await message.answer("❌⚙ <b>Файл логов не был найден. Скорее всего его не существует в текущей директории сервера.</b>", parse_mode='HTML')
+    else:
+        await state.update_data(debug_menu=False)
+
+@dp.message(Command('requests_url'))
+async def send_requests_url(message: Message, state: FSMContext):
+    data = await state.get_data()
+    date = datetime.now().strftime('%Y-%m-%d')
+    from_city = data.get('from_city')
+    to_city = data.get('to_city')
+
+    from_station = data.get('from_station')
+    to_station = data.get('to_station')
+
+    suburban_url = f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
+    train_url = f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_city}&to={to_city}&lang=ru_RU&date={date}&transport_types=train&limit=250"
+
+    debug_menu = data.get('debug_menu')
+    if debug_menu:
+        await message.answer("✅🔗 <b>Вот ссылки API запросов для тестирования в Postman.\n\n</b>"
+                             f"🚆 <b>API запрос электричек с выбранными вами станциями: {suburban_url}\n\n</b>"
+                             f"🚂 <b>API запрос поездов с выбранными вами городами: {train_url}\n\n</b>"
+                             "<b>Для просмотра информации из данных API, требуется зайти на https://www.postman.com/ и вставить туда ссылку.</b>", parse_mode='HTML')
+    else:
+        await state.update_data(debug_menu=False)
 
 if __name__ == '__main__':
     bot = Bot(token=token_bot)
