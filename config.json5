@@ -1,6 +1,7 @@
 {
   // Список ссылок на картинки поездов для ответов бота
   suburban_urls: [
+    'https://railgallery.ru/photo/02/69/99/269991.jpg',
     'https://railgallery.ru/photo/02/00/65/200651.jpg',
     'https://railgallery.ru/photo/01/69/76/169762.jpg',
     'https://railgallery.ru/photo/02/67/07/267072.jpg',
@@ -10,13 +11,25 @@
     'https://railgallery.ru/photo/00/58/62/58620.jpg',
     'https://railgallery.ru/photo/02/69/28/269286.jpg',
     'https://railgallery.ru/photo/02/65/85/265850.jpg',
+    'https://railgallery.ru/photo/02/70/06/270063.jpg',
+    'https://railgallery.ru/photo/02/28/44/228442.jpg',
+    'https://railgallery.ru/photo/01/87/08/187082.jpg',
+    'https://railgallery.ru/photo/00/40/25/40255.jpg',
+    'https://railgallery.ru/photo/00/59/80/59806.jpg',
+    'https://railgallery.ru/photo/02/43/93/243933.jpg',
   ],
 
   train_urls: [
+    'https://railgallery.ru/photo/02/69/99/269991.jpg',
     'https://railgallery.ru/photo/02/69/25/269256.jpg',
     'https://railgallery.ru/photo/02/69/29/269299.jpg',
     'https://railgallery.ru/photo/02/69/30/269305.jpg',
     'https://railgallery.ru/photo/02/69/27/269273.jpg',
+    'https://railgallery.ru/photo/02/70/04/270040.jpg',
+    'https://railgallery.ru/photo/02/70/10/270103.jpg',
+    'https://railgallery.ru/photo/02/70/10/270100.jpg',
+    'https://railgallery.ru/photo/02/70/08/270081.jpg',
+    'https://railgallery.ru/photo/01/87/08/187082.jpg',
   ],
   // Список эмодзи для разных типов поездов
   emoji_map: {
