@@ -44,7 +44,11 @@ def get_suburban_info(from_station: str, to_station: str) -> str | None:
 
         transport_subtype = train.thread.transport_subtype.title
         carrier = train.thread.carrier.title
-        emoji = config.emoji_map.get(carrier, config.emoji_map.get(transport_subtype, "🚆"))
+        if train.thread.number == "МЦК":
+            transport_subtype = "Ласточка"
+            emoji = config.emoji_map.get(carrier, config.emoji_map.get(transport_subtype, "🚆"))
+        else:
+            emoji = config.emoji_map.get(carrier, config.emoji_map.get(transport_subtype, "🚆"))
 
         ticket_price = "Неизвестно"
         if train.tickets_info and train.tickets_info.places:
