@@ -16,10 +16,10 @@ config = load_config()
 
 
 def get_train_info(from_city: str, to_city: str) -> str | None:
-    # date = datetime.now().strftime('%Y-%m-%d')
+    date = datetime.now().strftime('%Y-%m-%d')
 
     search_request = requests.get(
-        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_city}&to={to_city}&lang=ru_RU&transport_types=train&limit=250"
+        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_city}&to={to_city}&lang=ru_RU&date={date}&transport_types=train&limit=250"
     )
 
     if not search_request.ok:
