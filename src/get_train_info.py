@@ -41,7 +41,7 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
         if moscow_now.timestamp() > train.departure.timestamp():
             continue
 
-        transport_subtype = "Обычный поезд"
+        transport_subtype = "Поезд дальнего следования"
         if train.thread.transport_subtype.title:
             transport_subtype = f'{train.thread.transport_subtype.title}'
 
@@ -72,7 +72,7 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
         else:
             time_until_arrival_str = f'{hours} час {minutes} минут'
 
-        msg = f'📋 <b>Расписание поездов от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+        msg = f'🗓 <b>Расписание поездов от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
             train_info)
 
         this_train_info = f'{emoji} <b>{train.thread.number} | {train.thread.title}</b>\n' \
@@ -88,6 +88,6 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
         train_info.append(
             this_train_info
         )
-        msg = f'📋 <b>Расписание поездов от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+        msg = f'🗓 <b>Расписание поездов от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
             train_info)
     return msg if train_info else None

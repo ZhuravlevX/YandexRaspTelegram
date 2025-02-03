@@ -19,7 +19,6 @@ config = load_config()
 def get_suburban_info(from_station: str, to_station: str) -> str | None:
     date = datetime.now().strftime('%Y-%m-%d')
     formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
-    tomorrow_date = format_date(datetime.now() + timedelta(days=1), format='d MMMM', locale='ru_RU')
     moscow_tz = pytz.timezone('Europe/Moscow')
     moscow_now = datetime.now(moscow_tz)
 
@@ -66,7 +65,7 @@ def get_suburban_info(from_station: str, to_station: str) -> str | None:
         else:
             time_until_arrival_str = f'{hours} час {minutes} минут'
 
-        msg = f'📋 <b>Расписание электричек от «{info.from_.title}» до «{info.to.title}» на {formatted_date} по {tomorrow_date}</b>\n\n' + '\n'.join(
+        msg = f'🗓 <b>Расписание электричек от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
             train_info)
 
         this_train_info = f'{emoji} <b>{train.thread.number} | {train.thread.title}</b>\n' \
@@ -82,6 +81,6 @@ def get_suburban_info(from_station: str, to_station: str) -> str | None:
         train_info.append(
             this_train_info
         )
-        msg = f'📋 <b>Расписание электричек от «{info.from_.title}» до «{info.to.title}» на {formatted_date} по {tomorrow_date}</b>\n\n' + '\n'.join(
+        msg = f'🗓 <b>Расписание электричек от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
             train_info)
     return msg if train_info else None
