@@ -16,10 +16,10 @@ config = load_config()
 
 
 def get_suburban_info(from_station: str, to_station: str) -> str | None:
-    date = datetime.now().strftime('%Y-%m-%d')
+    # date = datetime.now().strftime('%Y-%m-%d')
 
     search_request = requests.get(
-        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
+        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&transport_types=suburban&limit=250"
     )
 
     if not search_request.ok:
