@@ -35,7 +35,7 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
     msg = ""
 
     for train in trains:
-        formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
+        formatted_date = format_date(datetime.now(train.departure.tzinfo), format='d MMMM', locale='ru_RU')
         timezone_now = datetime.now(train.departure.tzinfo)
 
         if timezone_now.timestamp() > train.departure.timestamp():
