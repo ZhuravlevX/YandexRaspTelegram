@@ -1,7 +1,6 @@
 import logging
 import os
-from datetime import datetime, timedelta
-import pytz
+from datetime import datetime, timedelta, timezone
 import requests
 from babel.dates import format_date
 from dotenv import load_dotenv
@@ -18,9 +17,6 @@ config = load_config()
 
 def get_suburban_info(from_station: str, to_station: str) -> str | None:
     date = datetime.now().strftime('%Y-%m-%d')
-    formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
-    moscow_tz = pytz.timezone('Europe/Moscow')
-    moscow_now = datetime.now(moscow_tz)
 
     search_request = requests.get(
         f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
@@ -38,7 +34,10 @@ def get_suburban_info(from_station: str, to_station: str) -> str | None:
     msg = ""
 
     for train in trains:
-        if moscow_now.timestamp() > train.departure.timestamp():
+        formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
+        timezone_now = datetime.now(train.departure.tzinfo)
+
+        if timezone_now.timestamp() > train.departure.timestamp():
             continue
 
         transport_subtype = train.thread.transport_subtype.title
@@ -55,7 +54,7 @@ def get_suburban_info(from_station: str, to_station: str) -> str | None:
         if not departure_platform:
             departure_platform = "неизвестного пути"
 
-        time_until_arrival = train.departure - moscow_now
+        time_until_arrival = train.departure - timezone_now
         hours, remainder = divmod(time_until_arrival.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         if hours == 0 and minutes == 0:
@@ -65,7 +64,7 @@ def get_suburban_info(from_station: str, to_station: str) -> str | None:
         else:
             time_until_arrival_str = f'{hours} час {minutes} минут'
 
-        msg = f'🗓 <b>Расписание электричек от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+        msg = f'🗓 <b>Расписание пригородных поездов «{info.from_.title}» – «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
             train_info)
 
         this_train_info = f'{emoji} <b>{train.thread.number} | {train.thread.title}</b>\n' \
@@ -81,6 +80,6 @@ def get_suburban_info(from_station: str, to_station: str) -> str | None:
         train_info.append(
             this_train_info
         )
-        msg = f'🗓 <b>Расписание электричек от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+        msg = f'🗓 <b>Расписание пригородных поездов «{info.from_.title}» – «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
             train_info)
     return msg if train_info else None

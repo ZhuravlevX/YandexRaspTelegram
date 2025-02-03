@@ -18,9 +18,6 @@ config = load_config()
 
 def get_train_info(from_city: str, to_city: str) -> str | None:
     date = datetime.now().strftime('%Y-%m-%d')
-    formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
-    moscow_tz = pytz.timezone('Europe/Moscow')
-    moscow_now = datetime.now(moscow_tz)
 
     search_request = requests.get(
         f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_city}&to={to_city}&lang=ru_RU&date={date}&transport_types=train&limit=250"
@@ -38,7 +35,10 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
     msg = ""
 
     for train in trains:
-        if moscow_now.timestamp() > train.departure.timestamp():
+        formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
+        timezone_now = datetime.now(train.departure.tzinfo)
+
+        if timezone_now.timestamp() > train.departure.timestamp():
             continue
 
         transport_subtype = "Поезд дальнего следования"
@@ -62,22 +62,22 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
         else:
             duration_time = f'{minutes} минут'
 
-        time_until_arrival = train.departure - moscow_now
+        time_until_arrival = train.departure - timezone_now
         hours, remainder = divmod(time_until_arrival.seconds, 3600)
         minutes, _ = divmod(remainder, 60)
         if hours == 0 and minutes == 0:
-            time_until_arrival_str = 'Отправляться от вокзала'
+            time_until_arrival_str = 'Отправляться от вокзала или пункта остановки'
         elif hours == 0:
             time_until_arrival_str = f'{minutes} минут'
         else:
             time_until_arrival_str = f'{hours} час {minutes} минут'
 
-        msg = f'🗓 <b>Расписание поездов от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+        msg = f'🗓 <b>Расписание поездов дальнего следования «{info.from_.title}» – «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
             train_info)
 
         this_train_info = f'{emoji} <b>{train.thread.number} | {train.thread.title}</b>\n' \
-                          f'<i>Отправляется с {train.from_.title} в {train.departure.hour}:{train.departure.minute:02d}</i>\n' \
-                          f'<i>Прибудет в {train.to.title} в {train.arrival.hour}:{train.arrival.minute:02d}</i>\n' \
+                          f'<i>Отправляется с {train.from_.title} в {train.departure.hour}:{train.departure.minute:02d} по местному времени</i>\n' \
+                          f'<i>Прибудет в {train.to.title} в {train.arrival.hour}:{train.arrival.minute:02d} по местному времени</i>\n' \
                           f'<i>Время в пути составит: {duration_time}</i>\n' \
                           f'<i>{transport_subtype} | {train.thread.carrier.title}</i>\n' \
                           f'<b>Время до отправления: {time_until_arrival_str}</b>\n'
@@ -88,6 +88,6 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
         train_info.append(
             this_train_info
         )
-        msg = f'🗓 <b>Расписание поездов от «{info.from_.title}» до «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+        msg = f'🗓 <b>Расписание поездов дальнего следования «{info.from_.title}» – «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
             train_info)
     return msg if train_info else None
