@@ -3,7 +3,7 @@ import locale
 import logging
 import os
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
@@ -11,6 +11,7 @@ from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.mongo import MongoStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
+from babel.dates import format_date
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.types.input_file import FSInputFile
@@ -40,13 +41,22 @@ auto_update_users = {}
 async def update_suburbans(message: Message, user_id: int, state: FSMContext):
     remaining_time = 60
     data = await state.get_data()
+    date = datetime.now().strftime('%Y-%m-%d')
     from_station = data.get('from_station')
     to_station = data.get('to_station')
+    from_station_title = data.get('from_station_title')
+    to_station_title = data.get('to_station_title')
+    tomorrow_date = format_date(datetime.now() + timedelta(days=1), format='d MMMM', locale='ru_RU')
+
+    formatted_date = format_date(datetime.now(), format='d MMMM', locale='ru_RU')
     auto_update_users[user_id] = True
 
     for i in range(60):
         current_time = datetime.now().strftime('%H:%M')
-        train_info = get_suburban_info(from_station, to_station)
+        if data.get('date_tomorrow') == date or data.get('date_tomorrow') is None:
+            train_info = get_suburban_info(from_station, to_station, date)
+        else:
+            train_info = get_suburban_info(from_station, to_station, data.get('date_tomorrow'))
         random_image = random.choice(suburban_urls)
 
         if not auto_update_users[user_id]:
@@ -87,10 +97,12 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
                 return
             await asyncio.sleep(60)
         else:
-            await message.edit_text(
-                "🚉🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
-                "Пожалуйста, укажите действительный маршрут следования электрички.</b>",
-                parse_mode='HTML')
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text=f"📆 | Поиск на {tomorrow_date}", callback_data="send_suburban_tomorrow")]
+            ])
+            await message.edit_text(f"🚉⏰ <b>К сожалению, по вашему маршруту следования мы не нашли расписание пригородных поездов за {formatted_date} от {from_station_title} – {to_station_title}. "
+                f"Вы можете совершить поиск расписания пригородных поездов на {tomorrow_date}.</b>",
+                parse_mode='HTML', reply_markup=keyboard)
             auto_update_users[user_id] = False
             return
 
@@ -233,6 +245,12 @@ async def delete_schedule(callback_query: types.CallbackQuery):
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_suburbans(callback_query.message, state)
 
+@dp.callback_query(lambda c: c.data == 'send_suburban_tomorrow')
+async def handle_send_suburban_tomorrow(callback_query: types.CallbackQuery, state: FSMContext):
+    tomorrow_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+    await state.update_data(date_tomorrow=tomorrow_date)
+    await send_suburbans(callback_query.message, state)
+
 @dp.callback_query(lambda c: c.data == "send_train")
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_trains(callback_query.message, state)
@@ -304,7 +322,7 @@ async def inversion_route_station(callback_query: types.CallbackQuery, state: FS
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text="🚉 | Расписание пригородных поездов", callback_data="send_suburban")]])
         await bot.send_message(callback_query.message.chat.id,
-                               f"🚆🔁 <b>Была совершена инверсия маршрута следования для пригородных поездов. «{to_station_title}» является отправной точкой и «{from_station_title}» является конечной точкой.</b>",
+                               f"🚆🔁 <b>Была совершена инверсия маршрута следования для пригородных поездов. {to_station_title} является отправной точкой и {from_station_title} является конечной точкой.</b>",
                                parse_mode='HTML', reply_markup=keyboard)
         await state.update_data(from_station=to_station, to_station=from_station, from_station_title=to_station_title, to_station_title=from_station_title)
     else:

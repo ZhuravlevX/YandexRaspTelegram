@@ -1,11 +1,15 @@
 import logging
 import os
 from datetime import datetime, timedelta, timezone
+from time import tzname
+
 import requests
 from babel.dates import format_date
 from dotenv import load_dotenv
 from src.utils.load_config import load_config
 from src.models.search_response import SearchResponse
+
+from aiogram.fsm.context import FSMContext
 
 load_dotenv()
 
@@ -15,11 +19,9 @@ token_bot = os.getenv('TOKEN_BOT')
 config = load_config()
 
 
-def get_suburban_info(from_station: str, to_station: str) -> str | None:
-    date = datetime.now().strftime('%Y-%m-%d')
-
+def get_suburban_info(from_station: str, to_station: str, date: str) -> str | None:
     search_request = requests.get(
-        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&transport_types=suburban&limit=250"
+        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&result_timezone=Europe/Moscow&transport_types=suburban&limit=250"
     )
 
     if not search_request.ok:

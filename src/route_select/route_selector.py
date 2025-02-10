@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from aiogram import Router
 from aiogram.filters.callback_data import CallbackData
@@ -16,8 +17,16 @@ from src.route_select.find_city import find_city
 from src.get_suburban_info import get_suburban_info
 from src.get_train_info import get_train_info
 
+station_emojis = {
+    "train_station": "🏫",
+    "station": "🚉",
+    "airport": "🛫"
+}
+
 route_selector = Router()
 token_yandex = os.getenv('TOKEN_YANDEX')
+
+date = datetime.now().strftime('%Y-%m-%d')
 
 
 class RouteSelectState(StatesGroup):
@@ -30,44 +39,36 @@ class RouteSelectState(StatesGroup):
 class SelectStationCallback(CallbackData, prefix="select_station"):
     direction: Literal['from', 'to']
     code: str
-    title: str
+
 
 class SelectCityCallback(CallbackData, prefix="select_city"):
     direction: Literal['from', 'to']
     code: str
-    region: str
 
 
 async def select_stations_keyboard(stations: list[Station],
                                    direction: Literal['from', 'to'], state: FSMContext) -> InlineKeyboardMarkup:
     stations_list = {}
     builder = InlineKeyboardBuilder()
+
     for index, station in enumerate(stations[:15]):
         stations_list[station.code] = f'«{station.title}» ({station.region})'
-        if station.station_type == "train_station":
-            builder.button(text=f'🏫 | {station.title} ({station.region})',
-                           callback_data=SelectStationCallback(direction=direction, code=station.code, title=station.title))
-        elif station.station_type == "station":
-            builder.button(text=f'🚉 | {station.title} ({station.region})',
-                           callback_data=SelectStationCallback(direction=direction, code=station.code, title=station.title))
-        elif station.station_type == "airport":
-            builder.button(text=f'🛫 | {station.title} ({station.region})',
-                           callback_data=SelectStationCallback(direction=direction, code=station.code, title=station.title))
-        else:
-            builder.button(text=f'🛤 | {station.title} ({station.region})',
-                           callback_data=SelectStationCallback(direction=direction, code=station.code, title=station.title))
+        builder.button(text=f'{station_emojis.get(station.station_type, "🛤")} | {station.title} ({station.region})',
+                       callback_data=SelectStationCallback(direction=direction, code=station.code))
     await state.update_data(stations=stations_list)
+
     builder.adjust(1, repeat=True)
     return builder.as_markup()
 
+
 async def select_cities_keyboard(cities: list[City],
-                                   direction: Literal['from', 'to'], state: FSMContext) -> InlineKeyboardMarkup:
+                                 direction: Literal['from', 'to'], state: FSMContext) -> InlineKeyboardMarkup:
     cities_list = {}
     builder = InlineKeyboardBuilder()
     for index, city in enumerate(cities[:15]):
         cities_list[city.code] = f'«{city.region}»'
         builder.button(text=f'🏙 | «{city.region}»',
-                       callback_data=SelectCityCallback(direction=direction, code=city.code, title=city.title))
+                       callback_data=SelectCityCallback(direction=direction, code=city.code))
     await state.update_data(cities=cities_list)
     builder.adjust(1, repeat=True)
     return builder.as_markup()
@@ -76,13 +77,14 @@ async def select_cities_keyboard(cities: list[City],
 @route_selector.callback_query(lambda c: c.data == 'find_route')
 async def find_route(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_station_search)
-    await c.message.reply('🏫🔍 <b>Введите название станции или платформы ОТКУДА вы отправляетесь.</b>', parse_mode='HTML')
+    await c.message.reply('🏫🔍 <b>Введите название станции или платформы ОТКУДА вы отправляетесь.</b>',
+                          parse_mode='HTML')
+
 
 @route_selector.callback_query(lambda c: c.data == 'find_route_city')
 async def find_route_city(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_city_search)
     await c.message.reply('🏙🔍 <b>Введите название города ОТКУДА вы отправляетесь.</b>', parse_mode='HTML')
-
 
 
 @route_selector.message(RouteSelectState.from_station_search)
@@ -97,7 +99,7 @@ async def from_station_handler(message: Message, state: FSMContext):
         await message.reply(
             f'🏫🔍 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Введите название станции или платформы КУДА вы едете.</b>',
             parse_mode='HTML')
-        await state.update_data(from_station=stations[0].code, from_station_title=stations[0].title)
+        await state.update_data(from_station=stations[0].code, from_station_title=f"«{stations[0].title}» ({stations[0].region})")
         await state.set_state(RouteSelectState.to_station_search)
     else:
         await message.reply(
@@ -118,8 +120,8 @@ async def to_station_handler(message: Message, state: FSMContext):
             f'❌🔍 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>',
             parse_mode='HTML')
     elif len(stations) == 1:
-        await state.update_data(to_station=stations[0].code, to_station_title=stations[0].title)
-        train_info_check = get_suburban_info(from_station, stations[0].code)
+        await state.update_data(to_station=stations[0].code, to_station_title=f"«{stations[0].title}» ({stations[0].region})")
+        train_info_check = get_suburban_info(from_station, stations[0].code, date)
         if train_info_check:
             await message.reply(
                 f'🏫🔍 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Маршрут следования для расписания был установлен.</b>',
@@ -148,10 +150,10 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
             f'🏫🔍 <b>Выбрана станция {station}. Введите название станции или платформы КУДА вы едете.</b>',
             parse_mode='HTML')
         await state.set_state(RouteSelectState.to_station_search)
-        await state.update_data(from_station=callback_data.code, from_station_title=callback_data.region)
+        await state.update_data(from_station=callback_data.code, from_station_title=station)
     elif callback_data.direction == 'to':
-        await state.update_data(to_station=callback_data.code, to_station_title=callback_data.region)
-        train_info_check = get_suburban_info(from_station, callback_data.code)
+        await state.update_data(to_station=callback_data.code, to_station_title=station)
+        train_info_check = get_suburban_info(from_station, callback_data.code, date)
         if train_info_check:
             await callback.message.edit_text(
                 f'🏫🔍 <b>Найдена станция {station}. Маршрут следования для расписания был установлен.</b>',
