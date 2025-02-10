@@ -1,15 +1,13 @@
 import logging
 import os
-from datetime import datetime, timedelta, timezone
-from time import tzname
+from datetime import datetime
 
+import pytz
 import requests
 from babel.dates import format_date
 from dotenv import load_dotenv
 from src.utils.load_config import load_config
 from src.models.search_response import SearchResponse
-
-from aiogram.fsm.context import FSMContext
 
 load_dotenv()
 
@@ -19,10 +17,12 @@ token_bot = os.getenv('TOKEN_BOT')
 config = load_config()
 
 
-def get_suburban_info(from_station: str, to_station: str, date: str) -> str | None:
+def get_suburban_info(from_station: str, to_station: str, date: str, tz: str) -> str | None:
     search_request = requests.get(
-        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&result_timezone=Europe/Moscow&transport_types=suburban&limit=250"
+        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&result_timezone={tz}&transport_types=suburban&limit=250"
     )
+
+    tz_str = pytz.timezone(str(tz))
 
     if not search_request.ok:
         logging.warning(f"API request error {search_request.text}")
@@ -36,8 +36,8 @@ def get_suburban_info(from_station: str, to_station: str, date: str) -> str | No
     msg = ""
 
     for train in trains:
-        formatted_date = format_date(datetime.now(train.departure.tzinfo), format='d MMMM', locale='ru_RU')
-        timezone_now = datetime.now(train.departure.tzinfo)
+        formatted_date = format_date(datetime.now(tz_str), format='d MMMM', locale='ru_RU')
+        timezone_now = datetime.now(tz_str)
 
         if timezone_now.timestamp() > train.departure.timestamp():
             continue
@@ -56,7 +56,18 @@ def get_suburban_info(from_station: str, to_station: str, date: str) -> str | No
         if not departure_platform:
             departure_platform = "неизвестного пути"
 
+        duration = train.duration
+        days, remainder = divmod(duration, 86400)
+        hours, remainder = divmod(remainder, 3600)
+        minutes, _ = divmod(remainder, 60)
+
+        if hours > 0:
+            duration_time = f'{int(hours)} час {int(minutes)} минут'
+        else:
+            duration_time = f'{int(minutes)} минут'
+
         time_until_arrival = train.departure - timezone_now
+
         hours, remainder = divmod(time_until_arrival.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         if hours == 0 and minutes == 0:
@@ -73,6 +84,7 @@ def get_suburban_info(from_station: str, to_station: str, date: str) -> str | No
                           f'<i>Отправляется с {departure_platform} в {train.departure.hour}:{train.departure.minute:02d}</i>\n' \
                           f'<i>С остановками: {train.stops}</i>\n' \
                           f'<i>Стоимость билета: {ticket_price}</i>\n' \
+                          f'<i>Время в пути составит: {duration_time}</i>\n' \
                           f'<i>{transport_subtype.capitalize()} | {train.thread.carrier.title}</i>\n' \
                           f'<b>Время до прибытия: {time_until_arrival_str}</b>\n'
 

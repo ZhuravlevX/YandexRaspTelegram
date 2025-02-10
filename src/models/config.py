@@ -6,3 +6,4 @@ class Config(BaseModel):
     train_urls: list[str]
     suburban_map: dict[str, str]
     train_map: dict[str, str]
+    russian_timezones: dict[str, str]

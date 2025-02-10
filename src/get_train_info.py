@@ -1,6 +1,8 @@
 import logging
 import os
 from datetime import datetime
+
+import pytz
 import requests
 from babel.dates import format_date
 from dotenv import load_dotenv
@@ -15,12 +17,12 @@ token_bot = os.getenv('TOKEN_BOT')
 config = load_config()
 
 
-def get_train_info(from_city: str, to_city: str) -> str | None:
-    date = datetime.now().strftime('%Y-%m-%d')
-
+def get_train_info(from_city: str, to_city: str, date: str, tz: str) -> str | None:
     search_request = requests.get(
-        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_city}&to={to_city}&lang=ru_RU&date={date}&transport_types=train&limit=250"
+        f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_city}&to={to_city}&lang=ru_RU&date={date}&result_timezone={tz}&transport_types=train&limit=250"
     )
+
+    tz_str = pytz.timezone(str(tz))
 
     if not search_request.ok:
         logging.warning(f"API request error {search_request.text}")
@@ -34,8 +36,8 @@ def get_train_info(from_city: str, to_city: str) -> str | None:
     msg = ""
 
     for train in trains:
-        formatted_date = format_date(datetime.now(train.departure.tzinfo), format='d MMMM', locale='ru_RU')
-        timezone_now = datetime.now(train.departure.tzinfo)
+        formatted_date = format_date(datetime.now(tz_str), format='d MMMM', locale='ru_RU')
+        timezone_now = datetime.now(tz_str)
 
         if timezone_now.timestamp() > train.departure.timestamp():
             continue

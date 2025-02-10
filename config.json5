@@ -18,7 +18,6 @@
     'https://railgallery.ru/photo/00/59/80/59806.jpg',
     'https://railgallery.ru/photo/02/43/93/243933.jpg',
   ],
-
   train_urls: [
     'https://railgallery.ru/photo/02/69/99/269991.jpg',
     'https://railgallery.ru/photo/02/69/25/269256.jpg',
@@ -31,7 +30,7 @@
     'https://railgallery.ru/photo/02/70/08/270081.jpg',
     'https://railgallery.ru/photo/01/87/08/187082.jpg',
   ],
-  // Список эмодзи для разных типов поездов
+  // Список эмодзи для разных типов пригородных поездов
   suburban_map: {
     'экспресс': '🚅',
     'экспресс РЭКС': '🚅🐶',
@@ -50,9 +49,22 @@
     'Аэроэкспресс (короткий состав)': '🚅🔻',
     'Иволга/Стандарт плюс': '🚆✳️🐦',
   },
-
+  // Список эмодзи для разных типов поездов дальнего следования
   train_map: {
     '«Ласточка»': '🚆🕊',
     '«Сапсан»': '🚄'
-  }
+  },
+  // Список часовых поясов России
+  russian_timezones: {
+    'Europe/Kaliningrad': 'Калининград – UTC+2',
+    'Europe/Moscow': 'Москва – UTC+3',
+    'Europe/Samara': 'Самара – UTC+4',
+    'Asia/Yekaterinburg': 'Екатеринбург – UTC+5',
+    'Asia/Omsk': 'Омск – UTC+6',
+    'Asia/Krasnoyarsk': 'Красноярск – UTC+7',
+    'Asia/Irkutsk': 'Иркутск – UTC+8',
+    'Asia/Yakutsk': 'Якутск – UTC+9',
+    'Asia/Vladivostok': 'Владивосток – UTC+10',
+    'Asia/Kamchatka': 'Камчатка – UTC+12'
+  },
 }
