@@ -118,7 +118,6 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
 async def update_trains(message: Message, user_id: int, state: FSMContext):
     remaining_time = 60
     data = await state.get_data()
-
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
     date = datetime.now(tz).strftime('%Y-%m-%d')
 
@@ -190,7 +189,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
 
 
 @dp.message(CommandStart())
-async def send_welcome(message: Message):
+async def send_welcome(message: Message, state: FSMContext):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⬅ | Маршрут следования", callback_data="routes"),
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
@@ -202,6 +201,7 @@ async def send_welcome(message: Message):
                                        "Данный бот позволяет вам быстро узнать расписание об вашем пригородном поезде или поездах дальнего следования. Для этого нужно лишь указать ОТКУДА и КУДА вам надо поехать и появиться полная информация об ближайших пригородных поездов и поездах дальнего следования.\n\n"
                                        "Для того, чтобы изменить маршрут следования или узнать расписание по текущему маршруту следования, нажмите кнопки ниже, либо воспользуйтесь командами /suburban, /train и /route.",
                                parse_mode='HTML', reply_markup=keyboard)
+    await state.set_state()
 
 
 @dp.message(Command('suburban'))
@@ -225,6 +225,7 @@ async def send_suburbans(message: Message, state: FSMContext):
     else:
         initial_message = await message.reply("🚆🗓 <b>Получаем расписание пригородных поездов...</b>", parse_mode='HTML')
         await update_suburbans(initial_message, user_id, state)
+    await state.set_state()
 
 
 @dp.message(Command('train'))
@@ -249,15 +250,17 @@ async def send_trains(message: Message, state: FSMContext):
         initial_message = await message.reply("🚂🗓 <b>Получаем расписание поездов дальнего следования...</b>",
                                               parse_mode='HTML')
         await update_trains(initial_message, user_id, state)
+    await state.set_state()
 
 
 @dp.message(Command('route'))
-async def send_routes(message: Message):
+async def send_routes(message: Message, state: FSMContext):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
                           InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")]])
     await message.reply("⬅🔍 <b>Выберите, какой тип маршрута следования для расписания вам необходимо установить.</b>",
                         parse_mode='HTML', reply_markup=keyboard)
+    await state.set_state()
 
 
 @dp.callback_query(lambda c: c.data == 'cancel_update')
