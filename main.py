@@ -135,6 +135,8 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_suburbans(callback_query.message, state)
+    if callback_query.data == "send_suburban":
+        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
 
 
 @dp.message(Command('suburban'))
@@ -165,9 +167,11 @@ async def send_suburbans(message: Message, state: FSMContext):
 async def handle_send_suburban_tomorrow(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    tomorrow_date = (datetime.now(tz) + timedelta(days=1)).strftime('%Y-%m-%d')
+    tomorrow_date = (datetime.now(tz)).strftime('%Y-%m-%d')
     await state.update_data(date_tomorrow=tomorrow_date)
     await send_suburbans(callback_query.message, state)
+    if callback_query.data == "send_suburban_tomorrow":
+        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
 
 
 # Trains
@@ -273,14 +277,18 @@ async def send_trains(message: Message, state: FSMContext):
 async def handle_send_train_tomorrow(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    tomorrow_date = (datetime.now(tz) + timedelta(days=1)).strftime('%Y-%m-%d')
+    tomorrow_date = (datetime.now(tz)).strftime('%Y-%m-%d')
     await state.update_data(date_tomorrow=tomorrow_date)
     await send_trains(callback_query.message, state)
+    if callback_query.data == "send_train_tomorrow":
+        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
 
 
 @dp.callback_query(lambda c: c.data == "send_train")
 async def handle_send_train(callback_query: types.CallbackQuery, state: FSMContext):
     await send_trains(callback_query.message, state)
+    if callback_query.data == "send_train":
+        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
 
 
 # Schedule and route
@@ -420,7 +428,7 @@ async def clear_route_selection(callback_query: types.CallbackQuery, state: FSMC
     else:
         await state.update_data(from_city=None, to_city=None, from_city_title=None, to_city_title=None)
         response_message = "🚂🚮 <b>Маршруты следования городов были успешно очищены. Для того, чтобы установить новый маршрут следования воспользуйтесь командой /route.</b>"
-
+    await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
     await bot.send_message(callback_query.message.chat.id, response_message, parse_mode='HTML')
 
 
@@ -461,8 +469,9 @@ async def inversion_route_selection(callback_query: types.CallbackQuery, state: 
             inline_keyboard=[
                 [InlineKeyboardButton(text=f"{emoji} | Расписание {message_prefix}", callback_data=callback_data)]])
         await bot.send_message(callback_query.message.chat.id,
-                               f"🚆🔁 <b>Была совершена инверсия маршрута следования для {message_prefix}. {to_title} является отправной точкой и {from_title} является конечной точкой.</b>",
+                               f"{emoji}🔁 <b>Была совершена инверсия маршрута следования для {message_prefix}. {to_title} является отправной точкой и {from_title} является конечной точкой.</b>",
                                parse_mode='HTML', reply_markup=keyboard)
+        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
         await state.update_data(
             **{f'from_{("station" if callback_data == "send_suburban" else "city")}': to_location,
                f'to_{("station" if callback_data == "send_suburban" else "city")}': from_location,
@@ -470,6 +479,7 @@ async def inversion_route_selection(callback_query: types.CallbackQuery, state: 
                f'to_{("station_title" if callback_data == "send_suburban" else "city_title")}': from_title}
         )
     else:
+        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
         await bot.send_message(callback_query.message.chat.id,
                                f"❌🔁 <b>Маршрут следования не был установлен для {message_prefix}. Пожалуйста, установите маршрут перед инверсией маршрута.</b>",
                                parse_mode='HTML')
