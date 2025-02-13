@@ -386,11 +386,28 @@ async def set_timezone(callback_query: types.CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query(lambda c: c.data == "clear_route")
-async def clear_route(callback_query: types.CallbackQuery, state: FSMContext):
-    await state.update_data(from_station=None, to_station=None, to_city=None, from_city=None, from_station_title=None,
-                            to_station_title=None)
+async def clear_route(callback_query: types.CallbackQuery):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="clear_route_station"),
+                          InlineKeyboardButton(text="🏙 | Города", callback_data="clear_route_city")]])
     await bot.send_message(callback_query.message.chat.id,
-                           "🚆🚮 <b>Маршруты следования были успешно очищен. Для того, чтобы установить новый маршрут, воспользуйтесь командой /route.</b>",
+                           "🛤🚮 <b>Выберете тип маршрута следования, которые вы хотите желаете очистить.</b>",
+                           parse_mode='HTML', reply_markup=keyboard)
+
+
+@dp.callback_query(lambda c: c.data == "clear_route_station")
+async def clear_route_station(callback_query: types.CallbackQuery, state: FSMContext):
+    await state.update_data(from_station=None, to_station=None, from_station_title=None, to_station_title=None)
+    await bot.send_message(callback_query.message.chat.id,
+                           "🚆🚮 <b>Маршруты следования станций были успешно очищены. Для того, чтобы установить новый маршрут следования воспользуйтесь командой /route.</b>",
+                           parse_mode='HTML')
+
+
+@dp.callback_query(lambda c: c.data == "clear_route_city")
+async def clear_route_city(callback_query: types.CallbackQuery, state: FSMContext):
+    await state.update_data(from_city=None, to_city=None, from_city_title=None, to_city_title=None)
+    await bot.send_message(callback_query.message.chat.id,
+                           "🚂🚮 <b>Маршруты следования городов были успешно очищены. Для того, чтобы установить новый маршрут следования воспользуйтесь командой /route.</b>",
                            parse_mode='HTML')
 
 
