@@ -1,5 +1,5 @@
 {
-  // Список ссылок на картинки поездов для ответов бота
+  // Список ссылок на картинки пригородных поездов для ответов бота
   suburban_urls: [
     'https://railgallery.ru/photo/02/69/99/269991.jpg',
     'https://railgallery.ru/photo/02/00/65/200651.jpg',
@@ -17,7 +17,10 @@
     'https://railgallery.ru/photo/00/40/25/40255.jpg',
     'https://railgallery.ru/photo/00/59/80/59806.jpg',
     'https://railgallery.ru/photo/02/43/93/243933.jpg',
+    'https://railgallery.ru/photo/02/67/01/267013.jpg',
   ],
+
+  // Список ссылок на картинки поездов дальнего следования для ответов бота
   train_urls: [
     'https://railgallery.ru/photo/02/69/99/269991.jpg',
     'https://railgallery.ru/photo/02/69/25/269256.jpg',
@@ -30,6 +33,7 @@
     'https://railgallery.ru/photo/02/70/08/270081.jpg',
     'https://railgallery.ru/photo/01/87/08/187082.jpg',
   ],
+
   // Список эмодзи для разных типов пригородных поездов
   suburban_map: {
     'экспресс': '🚅',
@@ -49,11 +53,13 @@
     'Аэроэкспресс (короткий состав)': '🚅🔻',
     'Иволга/Стандарт плюс': '🚆✳️🐦',
   },
+
   // Список эмодзи для разных типов поездов дальнего следования
   train_map: {
     '«Ласточка»': '🚆🕊',
     '«Сапсан»': '🚄'
   },
+
   // Список часовых поясов России
   russian_timezones: {
     'Europe/Kaliningrad': 'Калининград – UTC+2',

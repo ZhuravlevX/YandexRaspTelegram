@@ -5,7 +5,7 @@ import os
 import random
 
 from pytz import timezone
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart
@@ -13,7 +13,6 @@ from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.mongo import MongoStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message
-from babel.dates import format_date
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.types.input_file import FSInputFile
@@ -63,24 +62,15 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
     remaining_time = 60
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    date = datetime.now(tz).strftime('%Y-%m-%d')
 
     from_station = data.get('from_station')
     to_station = data.get('to_station')
-    from_station_title = data.get('from_station_title')
-    to_station_title = data.get('to_station_title')
-
-    tomorrow_date = format_date(datetime.now(tz) + timedelta(days=1), format='d MMMM', locale='ru_RU')
-    formatted_date = format_date(datetime.now(tz), format='d MMMM', locale='ru_RU')
 
     auto_update_users[user_id] = True
 
     for i in range(60):
         current_time = datetime.now(tz).strftime('%H:%M')
-        if data.get('date_tomorrow') == date or data.get('date_tomorrow') is None:
-            train_info = get_suburban_info(from_station, to_station, date, str(tz))
-        else:
-            train_info = get_suburban_info(from_station, to_station, data.get('date_tomorrow'), str(tz))
+        train_info = get_suburban_info(from_station, to_station, str(tz))
         random_image = random.choice(suburban_urls)
 
         if not auto_update_users[user_id]:
@@ -121,13 +111,10 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
                 return
             await asyncio.sleep(60)
         else:
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f"📆 | Поиск на {tomorrow_date}", callback_data="send_suburban_tomorrow")]
-            ])
             await message.edit_text(
-                f"🚉⏰ <b>К сожалению, по вашему маршруту следования мы не нашли расписание пригородных поездов за {formatted_date} от {from_station_title} – {to_station_title}. "
-                f"Вы можете совершить поиск расписания пригородных поездов на {tomorrow_date}.</b>",
-                parse_mode='HTML', reply_markup=keyboard)
+                "🚆🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
+                "Пожалуйста, укажите действительный маршрут следования пригородного поезда.</b>",
+                parse_mode='HTML')
             auto_update_users[user_id] = False
             return
 
@@ -135,8 +122,6 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_suburbans(callback_query.message, state)
-    if callback_query.data == "send_suburban":
-        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
 
 
 @dp.message(Command('suburban'))
@@ -163,40 +148,20 @@ async def send_suburbans(message: Message, state: FSMContext):
     await state.set_state()
 
 
-@dp.callback_query(lambda c: c.data == 'send_suburban_tomorrow')
-async def handle_send_suburban_tomorrow(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    tomorrow_date = (datetime.now(tz)).strftime('%Y-%m-%d')
-    await state.update_data(date_tomorrow=tomorrow_date)
-    await send_suburbans(callback_query.message, state)
-    if callback_query.data == "send_suburban_tomorrow":
-        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
-
-
 # Trains
 async def update_trains(message: Message, user_id: int, state: FSMContext):
     remaining_time = 60
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    date = datetime.now(tz).strftime('%Y-%m-%d')
 
     from_city = data.get('from_city')
     to_city = data.get('to_city')
-    from_city_title = data.get('from_city_title')
-    to_city_title = data.get('to_city_title')
-
-    tomorrow_date = format_date(datetime.now(tz) + timedelta(days=1), format='d MMMM', locale='ru_RU')
-    formatted_date = format_date(datetime.now(tz), format='d MMMM', locale='ru_RU')
 
     auto_update_users[user_id] = True
 
     for i in range(60):
         current_time = datetime.now(tz).strftime('%H:%M')
-        if data.get('date_tomorrow') == date or data.get('date_tomorrow') is None:
-            train_info = get_train_info(from_city, to_city, date, str(tz))
-        else:
-            train_info = get_train_info(from_city, to_city, data.get('date_tomorrow'), str(tz))
+        train_info = get_train_info(from_city, to_city, str(tz))
         random_image = random.choice(train_urls)
 
         if not auto_update_users[user_id]:
@@ -237,13 +202,10 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
                 return
             await asyncio.sleep(60)
         else:
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=f"📆 | Поиск на {tomorrow_date}", callback_data="send_train_tomorrow")]
-            ])
             await message.edit_text(
-                f"🚂⏰ <b>К сожалению, по вашему маршруту следования мы не нашли расписание пригородных поездов за {formatted_date} от {from_city_title} – {to_city_title}. "
-                f"Вы можете совершить поиск расписания пригородных поездов на {tomorrow_date}.</b>",
-                parse_mode='HTML', reply_markup=keyboard)
+                "🚂🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
+                "Пожалуйста, укажите действительный маршрут следования поезда дальнего следования.</b>",
+                parse_mode='HTML')
             auto_update_users[user_id] = False
             return
 
@@ -273,22 +235,9 @@ async def send_trains(message: Message, state: FSMContext):
     await state.set_state()
 
 
-@dp.callback_query(lambda c: c.data == 'send_train_tomorrow')
-async def handle_send_train_tomorrow(callback_query: types.CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    tomorrow_date = (datetime.now(tz)).strftime('%Y-%m-%d')
-    await state.update_data(date_tomorrow=tomorrow_date)
-    await send_trains(callback_query.message, state)
-    if callback_query.data == "send_train_tomorrow":
-        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
-
-
 @dp.callback_query(lambda c: c.data == "send_train")
 async def handle_send_train(callback_query: types.CallbackQuery, state: FSMContext):
     await send_trains(callback_query.message, state)
-    if callback_query.data == "send_train":
-        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
 
 
 # Schedule and route
@@ -522,9 +471,9 @@ async def send_requests_url(message: Message, state: FSMContext):
     debug_menu = data.get('debug_menu')
     if debug_menu:
         await message.answer("✅🔗 <b>Вот ссылки API запросов для тестирования в Postman.\n\n</b>"
-                             f"🚆 <b>API запрос электричек с выбранными вами станциями: {suburban_url}\n\n</b>"
-                             f"🚂 <b>API запрос поездов с выбранными вами городами: {train_url}\n\n</b>"
-                             "<b>Для просмотра информации из данных API, требуется зайти на https://www.postman.com/ и вставить туда ссылку.</b>",
+                             f"🚆 <b>API запрос пригородных поездов с выбранными вами станциями: {suburban_url}\n\n</b>"
+                             f"🚂 <b>API запрос поездов дальнего следования с выбранными вами городами: {train_url}\n\n</b>"
+                             "<b>Для просмотра информации из данных API, требуется зайти на https://www.postman.com/ и вставить туда ссылку либо открыть ссылку в браузере.</b>",
                              parse_mode='HTML')
     else:
         await state.update_data(debug_menu=False)

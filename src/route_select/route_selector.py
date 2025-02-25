@@ -112,9 +112,8 @@ async def to_station_handler(message: Message, state: FSMContext):
     stations = find_station(message.text.casefold())
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    date = datetime.now(tz).strftime('%Y-%m-%d')
-
     from_station = data.get('from_station')
+    from_station_title = data.get('to_station_title')
 
     if len(stations) == 0:
         await message.reply(
@@ -123,10 +122,10 @@ async def to_station_handler(message: Message, state: FSMContext):
     elif len(stations) == 1:
         await state.update_data(to_station=stations[0].code,
                                 to_station_title=f"«{stations[0].title}» ({stations[0].region})")
-        train_info_check = get_suburban_info(from_station, stations[0].code, date, str(tz))
-        if train_info_check:
+        suburban_info_check = get_suburban_info(from_station, stations[0].code, str(tz))
+        if suburban_info_check:
             await message.reply(
-                f'🏫🔍 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Маршрут следования для расписания был установлен.</b>',
+                f'🏫🔍 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Маршрут следования для расписания пригородных поездов от {from_station_title} по «{stations[0].title}» ({stations[0].region}) был установлен.</b>',
                 parse_mode='HTML')
             await state.set_state()
         else:
@@ -144,8 +143,8 @@ async def to_station_handler(message: Message, state: FSMContext):
 async def select_station_handler(callback: CallbackQuery, callback_data: SelectStationCallback, state: FSMContext):
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    date = datetime.now(tz).strftime('%Y-%m-%d')
     from_station = data.get('from_station')
+    from_station_title = data.get('from_station_title')
 
     stations_list = data['stations']
     station = stations_list[callback_data.code]
@@ -157,10 +156,10 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
         await state.update_data(from_station=callback_data.code, from_station_title=station)
     elif callback_data.direction == 'to':
         await state.update_data(to_station=callback_data.code, to_station_title=station)
-        train_info_check = get_suburban_info(from_station, callback_data.code, date, str(tz))
-        if train_info_check:
+        suburban_info_check = get_suburban_info(from_station, callback_data.code, str(tz))
+        if suburban_info_check:
             await callback.message.edit_text(
-                f'🏫🔍 <b>Найдена станция {station}. Маршрут следования для расписания был установлен.</b>',
+                f'🏫🔍 <b>Найдена станция {station}. Маршрут следования для расписания пригородных поездов от {from_station_title} по {station} был установлен.</b>',
                 parse_mode='HTML')
             await state.set_state()
         else:
@@ -181,7 +180,7 @@ async def from_city_handler(message: Message, state: FSMContext):
         await message.reply(
             f'🏙🔍 <b>Найден город «{cities[0].region}». Введите название города КУДА вы едете.</b>',
             parse_mode='HTML')
-        await state.update_data(from_city=cities[0].code, from_city_title=cities[0].region)
+        await state.update_data(from_city=cities[0].code, from_city_title=f"«{cities[0].region}»")
         await state.set_state(RouteSelectState.to_city_search)
     else:
         await message.reply(
@@ -191,10 +190,10 @@ async def from_city_handler(message: Message, state: FSMContext):
 
 @route_selector.message(RouteSelectState.to_city_search)
 async def to_city_handler(message: Message, state: FSMContext):
-    cities = find_city(message.text.casefold())
     data = await state.get_data()
+    from_city_title = data.get('from_city_title')
+    cities = find_city(message.text.casefold())
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    date = datetime.now(tz).strftime('%Y-%m-%d')
 
     from_city = data.get('from_city')
 
@@ -203,11 +202,11 @@ async def to_city_handler(message: Message, state: FSMContext):
             f"❌🔍 <b>Город с таким названием не найден. Пожалуйста, укажите корректное название города.</b>",
             parse_mode='HTML')
     elif len(cities) == 1:
-        await state.update_data(to_city=cities[0].code, to_city_title=cities[0].region)
-        train_info_check = get_train_info(from_city, cities[0].code, date, str(tz))
+        await state.update_data(to_city=cities[0].code, to_city_title=f"«{cities[0].region}»")
+        train_info_check = get_train_info(from_city, cities[0].code, str(tz))
         if train_info_check:
             await message.reply(
-                f'🏙🔍 <b>Найден город «{cities[0].region}». Маршрут следования для расписания поездов был установлен.</b>',
+                f'🏙🔍 <b>Найден город «{cities[0].region}». Маршрут следования для расписания поездов дальнего следования от {from_city_title} до «{cities[0].region}» был установлен.</b>',
                 parse_mode='HTML')
             await state.set_state()
         else:
@@ -224,8 +223,8 @@ async def to_city_handler(message: Message, state: FSMContext):
 async def select_city_handler(callback: CallbackQuery, callback_data: SelectCityCallback, state: FSMContext):
     data = await state.get_data()
     from_city = data.get('from_city')
+    from_city_title = data.get('from_city_title')
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-    date = datetime.now(tz).strftime('%Y-%m-%d')
 
     cities_list = data['cities']
     city = cities_list[callback_data.code]
@@ -234,13 +233,13 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
             f'🏙🔍 <b>Выбран город {city}. Введите название города КУДА вы едете.</b>',
             parse_mode='HTML')
         await state.set_state(RouteSelectState.to_city_search)
-        await state.update_data(from_city=callback_data.code, from_city_title=callback_data.region)
+        await state.update_data(from_city=callback_data.code, from_city_title=f"«{callback_data.region}»")
     elif callback_data.direction == 'to':
-        await state.update_data(to_city=callback_data.code, to_city_title=callback_data.region)
-        train_info_check = get_train_info(from_city, callback_data.code, date, str(tz))
+        await state.update_data(to_city=callback_data.code, to_city_title=f"«{callback_data.region}»")
+        train_info_check = get_train_info(from_city, callback_data.code, str(tz))
         if train_info_check:
             await callback.message.edit_text(
-                f'🏙🔍 <b>Найден город {city}. Маршрут следования для расписания поездов был установлен.</b>',
+                f'🏙🔍 <b>Найден город {city}. Маршрут следования для расписания поездов дальнего следования от {from_city_title} до {city} был установлен.</b>',
                 parse_mode='HTML')
             await state.set_state()
         else:
