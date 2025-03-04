@@ -49,14 +49,10 @@ def get_train_info(from_city: str, to_city: str, tz: str) -> str | None:
             if timezone_now.timestamp() > train.departure.timestamp():
                 continue
 
-            transport_subtype = "Поезд дальнего следования"
-            if train.thread.transport_subtype.title:
-                transport_subtype = f'{train.thread.transport_subtype.title}'
+            number_train = train.thread.number
 
-            carrier = train.thread.carrier.title
-            if carrier == "РЖД/ДОСС" and transport_subtype != "«Ласточка»":
-                transport_subtype = "«Сапсан»"
-            emoji = config.train_map.get(carrier, config.train_map.get(transport_subtype, "🚂"))
+            emoji = config.numbers_trains_maps_emojis.get(number_train, config.numbers_trains_maps_emojis.get(number_train, "🚂"))
+            transport_subtype = config.numbers_trains_maps_title.get(number_train, config.numbers_trains_maps_title.get(number_train, "Поезд дальнего следования"))
 
             duration = train.duration
             days, remainder = divmod(duration, 86400)
