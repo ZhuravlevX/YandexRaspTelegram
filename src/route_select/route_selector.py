@@ -15,7 +15,7 @@ from src.models.stations import Station
 from src.models.cities import City
 from src.route_select.find_station import find_station
 from src.route_select.find_city import find_city
-from src.get_suburban_info import get_suburban_info
+from src.get_suburban_info import get_suburban_info_route
 from src.get_train_info import get_train_info
 
 station_emojis = {

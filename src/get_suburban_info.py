@@ -8,6 +8,7 @@ from babel.dates import format_date
 from dotenv import load_dotenv
 from src.utils.load_config import load_config
 from src.models.search_response import SearchResponse
+from src.models.search_response_station import SearchResponseStation
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ token_bot = os.getenv('TOKEN_BOT')
 config = load_config()
 
 
-def get_suburban_info(from_station: str, to_station: str, tz: str) -> str | None:
+def get_suburban_info_route(from_station: str, to_station: str, tz: str) -> str | None:
     tz_str = pytz.timezone(str(tz))
     date = datetime.now(tz_str).strftime('%Y-%m-%d')
 
@@ -111,3 +112,99 @@ def get_suburban_info(from_station: str, to_station: str, tz: str) -> str | None
         msg = format_suburban_info(suburbans, next_day, tz_str)
 
     return msg
+
+# def get_suburban_info_station(select_station: str, tz: str) -> str | None:
+#     tz_str = pytz.timezone(str(tz))
+#     date = datetime.now(tz_str).strftime('%Y-%m-%d')
+#
+#     def search_suburban(date):
+#         search_request = requests.get(
+#             f"https://api.rasp.yandex.net/v3.0/schedule/?apikey={token_yandex}&station={select_station}&transport_types=suburban&result_timezone={tz}&limit=250"
+#         )
+#
+#         if not search_request.ok:
+#             logging.warning(f"API request error {search_request.text}")
+#             return None, None
+#
+#         search = SearchResponseStation(**search_request.json())
+#         suburbans = search.schedule
+#         info = search.station
+#         return suburbans, info
+#
+#     def format_suburban_info(suburbans, date, tz_str):
+#         suburban_info = []
+#         msg = ""
+#
+#         for suburban in suburbans:
+#             departure = datetime.strptime(suburban.departure, "%Y-%m-%d %H:%M:%S")
+#             departure = tz_str.localize(departure)
+#
+#             if departure.date() > date.date():
+#                 continue
+#
+#             formatted_date = format_date(date, format='d MMMM', locale='ru_RU')
+#             timezone_now = datetime.now(tz_str)
+#
+#             if timezone_now.timestamp() > suburban.departure.timestamp():
+#                 continue
+#
+#             transport_subtype = suburban.transport_subtype.title
+#             carrier = suburban.carrier.title
+#
+#             if suburban.number == "МЦК":
+#                 transport_subtype = "Ласточка"
+#
+#             emoji = config.suburban_map.get(carrier, config.suburban_map.get(transport_subtype, "🚆"))
+#
+#             days_suburban = suburban.days
+#
+#             departure_platform = suburban.departure_platform or "неизвестного пути"
+#
+#             duration = suburban.duration
+#             hours, remainder = divmod(duration, 3600)
+#             minutes, _ = divmod(remainder, 60)
+#
+#             if hours > 0:
+#                 duration_time = f'{int(hours)} час {int(minutes)} минут'
+#             else:
+#                 duration_time = f'{int(minutes)} минут'
+#
+#             time_until_arrival = suburban.departure - timezone_now
+#             hours, remainder = divmod(time_until_arrival.seconds, 3600)
+#             minutes, _ = divmod(remainder, 60)
+#             if hours == 0 and minutes == 0:
+#                 time_until_arrival_str = 'Прибывает на станцию'
+#             elif hours == 0:
+#                 time_until_arrival_str = f'{minutes} минут'
+#             else:
+#                 time_until_arrival_str = f'{hours} час {minutes} минут'
+#
+#             this_suburban_info = f'{emoji} <b>{suburban.number} | {suburban.title}</b>\n' \
+#                               f'<i>Отправляется с {departure_platform} в {suburban.departure.hour}:{suburban.departure.minute:02d}</i>\n' \
+#                               f'<i>С остановками: {suburban.stops}</i>\n' \
+#                               f'<i>Пригородный поезд курсирует {days_suburban}</i>\n' \
+#                               f'<i>Время в пути составит: {duration_time}</i>\n' \
+#                               f'<i>{transport_subtype.capitalize()} | {suburban.carrier.title}</i>\n' \
+#                               f'<b>Время до прибытия: {time_until_arrival_str}</b>\n'
+#
+#             if len(msg + this_suburban_info) > 900:
+#                 break
+#
+#             suburban_info.append(this_suburban_info)
+#             msg = f'🗓 <b>Расписание пригородных поездов на станцию «{info.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+#                 suburban_info)
+#         return msg if suburban_info else None
+#
+#     suburbans, info = search_suburban(date)
+#     if suburbans is None:
+#         return None
+#
+#     msg = format_suburban_info(suburbans, datetime.now(tz_str), tz_str)
+#     if not msg:
+#         next_day = datetime.now(tz_str) + timedelta(days=1)
+#         suburbans, info = search_suburban(next_day.strftime('%Y-%m-%d'))
+#         if suburbans is None:
+#             return None
+#         msg = format_suburban_info(suburbans, next_day, tz_str)
+#
+#     return msg
