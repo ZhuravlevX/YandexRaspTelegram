@@ -39,9 +39,11 @@ dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
 
+
 class FeedbackStates(StatesGroup):
     awaiting_feedback = State()
     awaiting_reply_text = State()
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%d-%m-%y %H:%M:%S')
@@ -539,15 +541,39 @@ async def inversion_route_selection(callback_query: types.CallbackQuery, state: 
 
 # Debug
 @dp.message(Command('feedback'))
-async def feedback_command(message: Message, state: FSMContext):
+@dp.callback_query(lambda c: c.data == 'feedback')
+async def feedback_command(event, state: FSMContext):
+    user_state = await state.get_data()
+
+    if user_state.get('feedback_in_progress'):
+        if isinstance(event, Message):
+            await event.answer(
+                "ℹ✉ <b>У вас уже есть одно открытое обращение. Пожалуйста, дождитесь ответа. Если вам уже ответили на обращение, то отметьте его прочитанным, перед тем, как написать следующее.</b>",
+                parse_mode='HTML')
+        elif isinstance(event, CallbackQuery):
+            await event.message.answer(
+                "ℹ✉ <b>У вас уже есть одно открытое обращение. Пожалуйста, дождитесь ответа. Если вам уже ответили на обращение, то отметьте его прочитанным, перед тем, как написать следующее.</b>",
+                parse_mode='HTML')
+        return
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="❌ Отменить обращение", callback_data="cancel_feedback")]
         ])
-    await message.answer("📨 <b>Пожалуйста, напишите ваше сообщение, которое будет передано создателю бота. \n\n</b>"
-                         "В своем сообщении вы можете рассказать об пожеланиях, обнаруженных ошибках и багах, оставить отзыв по поводу использования бота. "
-                         "Убедительная просьба, не писать в обратную связь всякий не связанный бред, имейте уважение.",
-                         parse_mode='HTML', reply_markup=keyboard)
+
+    if isinstance(event, Message):
+        await event.answer(
+            "📨 <b>Пожалуйста, напишите ваше сообщение, которое будет передано создателю бота. \n\n</b>"
+            "В своем сообщении вы можете рассказать об пожеланиях, обнаруженных ошибках и багах, оставить отзыв по поводу использования бота. "
+            "Убедительная просьба, не писать в обратную связь всякий не связанный бред, имейте уважение.",
+            parse_mode='HTML', reply_markup=keyboard)
+    elif isinstance(event, CallbackQuery):
+        await event.message.answer(
+            "📨 <b>Пожалуйста, напишите ваше сообщение, которое будет передано создателю бота. \n\n</b>"
+            "В своем сообщении вы можете рассказать об пожеланиях, обнаруженных ошибках и багах, оставить отзыв по поводу использования бота. "
+            "Убедительная просьба, не писать в обратную связь всякий не связанный бред, имейте уважение.",
+            parse_mode='HTML', reply_markup=keyboard)
+
     await state.set_state(FeedbackStates.awaiting_feedback)
 
 
@@ -557,33 +583,46 @@ async def handle_feedback(message: Message, state: FSMContext):
     user = message.from_user
     feedback_message = (
         f"💌 <b>У вас появилось новое обращение от {user.full_name} (@{user.username}):</b>\n\n{feedback_text}\n\n"
-        f"<b>Для ответа пользователю используйте кнопку ниже.</b>")
+        f"<b>Для ответа пользователю используйте кнопку ниже.</b>"
+    )
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="✉️ Ответить пользователю", callback_data=f"reply_{user.id}")]
-        ])
+        ]
+    )
 
     await bot.send_message(chat_id=admin_id, text=feedback_message, parse_mode='HTML', reply_markup=keyboard)
     await message.answer("📧 <b>Спасибо за обратную связь! В течении времени вам ответит создатель бота.</b>",
                          parse_mode='HTML')
-    await state.clear()
+    await state.update_data(feedback_in_progress=True)
+    await state.set_state()
 
 
 @dp.callback_query(lambda c: c.data.startswith("reply_"))
 async def ask_reply_text(callback_query: CallbackQuery, state: FSMContext):
     if callback_query.message.chat.id != int(admin_id):
         return
-
     user_id = int(callback_query.data.split("_")[1])
     await state.update_data(reply_user_id=user_id)
-    await bot.send_message(chat_id=admin_id, text="📝 <b>Пожалуйста, введите текст ответа пользователю:</b>", parse_mode='HTML')
+    await bot.send_message(chat_id=admin_id, text="📝 <b>Пожалуйста, введите текст ответа пользователю:</b>",
+                           parse_mode='HTML')
+    await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
     await state.set_state(FeedbackStates.awaiting_reply_text)
 
-# @dp.callback_query(lambda c: c.data == 'cancel_feedback')
-# async def cancel_feedback_reply_text(callback_query: CallbackQuery, state: FSMContext):
-#     await bot.edit_message_text(chat_id=callback_query.message.chat.id, text="❌📧 <b>Вы отменили обратную связь с создателем бота.</b>", parse_mode='HTML')
-#     await state.clear()
+
+@dp.callback_query(lambda c: c.data == 'cancel_feedback')
+async def cancel_feedback_reply_text(callback_query: CallbackQuery, state: FSMContext):
+    await callback_query.message.edit_text("❌📧 <b>Вы отменили обратную связь с создателем бота.</b>", parse_mode='HTML')
+    await state.update_data(feedback_in_progress=False)
+    await state.set_state()
+
+
+@dp.callback_query(lambda c: c.data == 'read_feedback')
+async def read_feedback(callback_query: CallbackQuery, state: FSMContext):
+    await state.update_data(feedback_in_progress=False)
+    await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
+    await state.set_state()
 
 
 @dp.message(FeedbackStates.awaiting_reply_text)
@@ -592,14 +631,20 @@ async def send_reply(message: Message, state: FSMContext):
     user_id = state_data.get("reply_user_id")
     reply_text = message.text
 
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Пометить прочитанным", callback_data="read_feedback")]
+        ]
+    )
+
     try:
-        await bot.send_message(chat_id=user_id, text=f"📩 <b>Ответ от создателя бота:</b>\n\n{reply_text}",
-                               parse_mode='HTML')
+        await bot.send_message(chat_id=user_id,
+                               text=f"📩 <b>Вам поступило сообщение от создателя бота в ответ на ваше обращение:</b>\n\n{reply_text}",
+                               parse_mode='HTML', reply_markup=keyboard)
         await message.answer("📧 <b>Сообщение было успешно отправлено пользователю.</b>", parse_mode='HTML')
     except Exception as e:
         await message.answer(f"❌ <b>Не удалось отправить сообщение пользователю. Ошибка:</b> {e}", parse_mode='HTML')
-
-    await state.clear()
+    await state.set_state()
 
 
 @dp.message(Command('log'))
