@@ -18,8 +18,7 @@ from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.types.input_file import FSInputFile
 
-from src.get_suburban_info import get_suburban_info_route
-# from src.get_suburban_info import get_suburban_info_station
+from src.get_suburban_info import get_suburban_info
 from src.get_train_info import get_train_info
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
@@ -57,8 +56,7 @@ async def send_welcome(message: Message, state: FSMContext):
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="📨 | Обратная связь", callback_data="feedback")],
                          [InlineKeyboardButton(text="↕ | Поиск по маршруту следования",
-                                               callback_data="schedule_route")],
-                         [InlineKeyboardButton(text="🚉 | Поиск по станции", callback_data="send_suburban_station")]])
+                                               callback_data="schedule_route")]])
 
     random_image = random.choice(suburban_urls)
     await message.answer_photo(photo=random_image,
@@ -83,7 +81,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
 
     for i in range(60):
         current_time = datetime.now(tz).strftime('%H:%M')
-        train_info = get_suburban_info_route(from_station, to_station, str(tz))
+        train_info = get_suburban_info(from_station, to_station, str(tz))
         random_image = random.choice(suburban_urls)
 
         if not auto_update_users[user_id]:
@@ -132,99 +130,10 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
             return
 
 
-# async def update_suburbans_stations(message: Message, user_id: int, state: FSMContext):
-#     remaining_time = 60
-#     data = await state.get_data()
-#     tz = timezone(data.get('timezone', 'Europe/Moscow'))
-#
-#     from_station = data.get('from_station')
-#     to_station = data.get('to_station')
-#
-#     auto_update_users[user_id] = True
-#
-#     for i in range(60):
-#         current_time = datetime.now(tz).strftime('%H:%M')
-#         train_info = get_suburban_info_station(from_station, str(tz))
-#         random_image = random.choice(suburban_urls)
-#
-#         if not auto_update_users[user_id]:
-#             train_info += f"\n🚉🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
-#             media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
-#             await message.edit_media(media)
-#             auto_update_users[user_id] = False
-#             return
-#
-#         if train_info:
-#             if data.get('enable_auto_update'):
-#                 if i < 59:
-#                     remaining_time -= 1
-#                     additional_text = f"\n🚉⌛ <b>Следующее обновление через 1 минуту. Оставшееся время обновления: {remaining_time} минут.</b>"
-#                     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-#                         [InlineKeyboardButton(text="🚫 | Отменить автообновление", callback_data="cancel_update")]
-#                     ])
-#                 else:
-#                     additional_text = f"\n🚉⌛️ <b>Автообновление было завершено в {current_time}, учтите актуальность данного расписания.</b>"
-#                     auto_update_users[user_id] = False
-#                     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-#                         [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
-#                     ])
-#
-#                 train_info += additional_text
-#                 media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
-#                 await message.edit_media(media, reply_markup=keyboard)
-#             else:
-#                 additional_text = f"\n🚉 <b>Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания.</b>"
-#                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
-#                     [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
-#                 ])
-#
-#                 train_info += additional_text
-#                 media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
-#                 await message.edit_media(media, reply_markup=keyboard)
-#                 auto_update_users[user_id] = False
-#                 return
-#             await asyncio.sleep(60)
-#         else:
-#             await message.edit_text(
-#                 "🚆🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
-#                 "Пожалуйста, укажите действительный маршрут следования пригородного поезда.</b>",
-#                 parse_mode='HTML')
-#             auto_update_users[user_id] = False
-#             return
-
-
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_suburbans(callback_query.message, state)
 
-
-# @dp.callback_query(lambda c: c.data == "send_suburban_station")
-# async def handle_send_suburban_station(callback_query: types.CallbackQuery, state: FSMContext):
-#     await send_suburbans_station(callback_query.message, state)
-
-
-# @dp.message(Command('suburban_station'))
-# async def send_suburbans_station(message: Message, state: FSMContext):
-#     data = await state.get_data()
-#     from_station = data.get('from_station')
-#     to_station = data.get('to_station')
-#     user_id = message.chat.id
-#
-#     if auto_update_users.get(user_id, False):
-#         await message.reply("🚆🗓 <b>Расписание с автообновление на данный момент активно. "
-#                             "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
-#                             parse_mode='HTML')
-#         return
-#
-#     if not from_station or not to_station:
-#         await message.reply("🚆🏫 <b>Маршрут следования не был установлен. "
-#                             "Пожалуйста, установите маршрут перед поиском расписания следования пригородных поездов.</b>",
-#                             parse_mode='HTML')
-#         return
-#     else:
-#         initial_message = await message.reply("🚆🗓 <b>Получаем расписание пригородных поездов...</b>", parse_mode='HTML')
-#         await update_suburbans_stations(initial_message, user_id, state)
-#     await state.set_state()
 
 @dp.message(Command('suburban'))
 async def send_suburbans(message: Message, state: FSMContext):
@@ -436,8 +345,7 @@ async def handle_back(callback_query: types.CallbackQuery):
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="📨 | Обратная связь", callback_data="feedback")],
                          [InlineKeyboardButton(text="↕ | Поиск по маршруту следования",
-                                               callback_data="schedule_route")],
-                         [InlineKeyboardButton(text="🚉 | Поиск по станции", callback_data="send_suburban_station")]])
+                                               callback_data="schedule_route")]])
     await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
                                         message_id=callback_query.message.message_id,
                                         reply_markup=keyboard)
