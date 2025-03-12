@@ -351,7 +351,7 @@ async def send_routes(message: Message, state: FSMContext):
     await state.set_state()
 
 
-@dp.callback_query(lambda c: c.data == "schedule")
+@dp.callback_query(lambda c: c.data == "schedule_route")
 async def handle_schedule(callback_query: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
@@ -429,13 +429,16 @@ async def handle_settings(callback_query: types.CallbackQuery, state: FSMContext
 
 @dp.callback_query(lambda c: c.data == "back")
 async def handle_back(callback_query: types.CallbackQuery):
-    main_keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="↕ | Маршрут следования", callback_data="routes"),
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🧭 | Установить маршрут", callback_data="routes"),
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
-                         [InlineKeyboardButton(text="🗓 | Расписание", callback_data="schedule")]])
+                         [InlineKeyboardButton(text="📨 | Обратная связь", callback_data="feedback")],
+                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования",
+                                               callback_data="schedule_route")],
+                         [InlineKeyboardButton(text="🚉 | Поиск по станции", callback_data="send_suburban_station")]])
     await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
                                         message_id=callback_query.message.message_id,
-                                        reply_markup=main_keyboard)
+                                        reply_markup=keyboard)
 
 
 # Timezone
