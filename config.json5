@@ -1,23 +1,16 @@
 {
   // Список ссылок на картинки пригородных поездов для ответов бота
   suburban_urls: [
-    'https://railgallery.ru/photo/02/69/99/269991.jpg',
-    'https://railgallery.ru/photo/02/00/65/200651.jpg',
-    'https://railgallery.ru/photo/01/69/76/169762.jpg',
-    'https://railgallery.ru/photo/02/67/07/267072.jpg',
-    'https://railgallery.ru/photo/00/74/96/74967.jpg',
-    'https://railgallery.ru/photo/02/46/34/246349.jpg',
-    'https://railgallery.ru/photo/02/51/55/251556.jpg',
-    'https://railgallery.ru/photo/00/58/62/58620.jpg',
-    'https://railgallery.ru/photo/02/69/28/269286.jpg',
-    'https://railgallery.ru/photo/02/65/85/265850.jpg',
-    'https://railgallery.ru/photo/02/70/06/270063.jpg',
-    'https://railgallery.ru/photo/02/28/44/228442.jpg',
-    'https://railgallery.ru/photo/01/87/08/187082.jpg',
-    'https://railgallery.ru/photo/00/40/25/40255.jpg',
-    'https://railgallery.ru/photo/00/59/80/59806.jpg',
-    'https://railgallery.ru/photo/02/43/93/243933.jpg',
-    'https://railgallery.ru/photo/02/67/01/267013.jpg',
+    'https://railgallery.ru/photo/02/58/62/258622.jpg',
+    'https://railgallery.ru/photo/02/30/15/230158.jpg',
+    'https://railgallery.ru/photo/02/72/24/272244.jpg',
+    'https://railgallery.ru/photo/02/02/09/202091.jpg',
+    'https://railgallery.ru/photo/02/11/88/211880.jpg',
+    'https://railgallery.ru/photo/00/73/14/73149.jpg',
+    'https://railgallery.ru/photo/02/15/42/215420.jpg',
+    'https://railgallery.ru/photo/02/27/81/227817.jpg',
+    'https://railgallery.ru/photo/02/33/02/233023.jpg',
+    'https://railgallery.ru/photo/01/96/32/196322.jpg'
   ],
 
   // Список ссылок на картинки поездов дальнего следования для ответов бота
@@ -32,6 +25,7 @@
     'https://railgallery.ru/photo/02/70/10/270100.jpg',
     'https://railgallery.ru/photo/02/70/08/270081.jpg',
     'https://railgallery.ru/photo/01/87/08/187082.jpg',
+    'https://railgallery.ru/photo/00/36/38/36385.jpg'
   ],
 
   // Список эмодзи для разных типов пригородных поездов
@@ -52,6 +46,8 @@
     'Аэроэкспресс': '🚅🔴',
     'Аэроэкспресс (короткий состав)': '🚅🔻',
     'Иволга/Стандарт плюс': '🚆✳️🐦',
+    '«финист» (по обычным билетам)': '🚅🆕',
+    '«финист» (билеты с указанием мест)': '🚅🆕🎟'
   },
 
   // Список эмодзи для разных типов поездов дальнего следования
