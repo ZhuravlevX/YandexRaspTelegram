@@ -133,6 +133,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
 @dp.callback_query(lambda c: c.data == "send_suburban")
 async def handle_send_suburban(callback_query: types.CallbackQuery, state: FSMContext):
     await send_suburbans(callback_query.message, state)
+    await callback_query.message.delete()
 
 
 @dp.message(Command('suburban'))
@@ -249,6 +250,7 @@ async def send_trains(message: Message, state: FSMContext):
 @dp.callback_query(lambda c: c.data == "send_train")
 async def handle_send_train(callback_query: types.CallbackQuery, state: FSMContext):
     await send_trains(callback_query.message, state)
+    await callback_query.message.delete()
 
 
 # Schedule and route

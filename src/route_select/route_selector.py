@@ -1,11 +1,10 @@
 import os
-from datetime import datetime
 
 from aiogram import Router
 from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from typing import Literal
 from pytz import timezone
 
@@ -76,35 +75,66 @@ async def select_cities_keyboard(cities: list[City],
 @route_selector.callback_query(lambda c: c.data == 'find_route')
 async def find_route(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_station_search)
-    await c.message.reply('🏫🔍 <b>Введите название станции или платформы ОТКУДА вы отправляетесь.</b>',
-                          parse_mode='HTML')
+    response = await c.message.edit_text('🏫🔍 <b>Введите название станции или платформы ОТКУДА вы отправляетесь.</b>',
+                                         parse_mode='HTML')
+    data = await state.get_data()
+    messages = data.get('messages', [])
+    messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+    await state.update_data(messages=messages)
 
 
 @route_selector.callback_query(lambda c: c.data == 'find_route_city')
 async def find_route_city(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_city_search)
-    await c.message.reply('🏙🔍 <b>Введите название города ОТКУДА вы отправляетесь.</b>', parse_mode='HTML')
+    response = await c.message.edit_text('🏙🔍 <b>Введите название города ОТКУДА вы отправляетесь.</b>',
+                                         parse_mode='HTML')
+    data = await state.get_data()
+    messages = data.get('messages', [])
+    messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+    await state.update_data(messages=messages)
+
+
+async def delete_previous_messages(messages: list, bot, last_message_id: int, state: FSMContext):
+    for message_id in messages:
+        if message_id['message_id'] == last_message_id:
+            continue
+        try:
+            await bot.delete_message(chat_id=message_id['chat_id'], message_id=message_id['message_id'])
+        except Exception as e:
+            print(f"Failed to delete message {message_id['message_id']}: {e}")
+    await state.update_data(messages=[])
 
 
 @route_selector.message(RouteSelectState.from_station_search)
 async def from_station_handler(message: Message, state: FSMContext):
     stations = find_station(message.text.casefold())
+    data = await state.get_data()
+
+    messages = data.get('messages', [])
+    messages.append({'chat_id': message.chat.id, 'message_id': message.message_id})
+    await state.update_data(messages=messages)
 
     if len(stations) == 0:
-        await message.reply(
-            f"❌🔍 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>",
+        response = await message.reply(
+            f"❌🔍 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции.</b>",
             parse_mode='HTML')
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
     elif len(stations) == 1:
-        await message.reply(
+        response = await message.reply(
             f'🏫🔍 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Введите название станции или платформы КУДА вы едете.</b>',
             parse_mode='HTML')
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
         await state.update_data(from_station=stations[0].code,
                                 from_station_title=f"«{stations[0].title}» ({stations[0].region})")
         await state.set_state(RouteSelectState.to_station_search)
     else:
-        await message.reply(
+        response = await message.reply(
             f'🏫🔍 <b>Найдены следующие станции с похожим названием:</b>',
             parse_mode='HTML', reply_markup=(await select_stations_keyboard(stations, direction='from', state=state)))
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
 
 
 @route_selector.message(RouteSelectState.to_station_search)
@@ -115,28 +145,48 @@ async def to_station_handler(message: Message, state: FSMContext):
     from_station = data.get('from_station')
     from_station_title = data.get('to_station_title')
 
+    # Save message ID
+    messages = data.get('messages', [])
+    messages.append({'chat_id': message.chat.id, 'message_id': message.message_id})
+    await state.update_data(messages=messages)
+
     if len(stations) == 0:
-        await message.reply(
-            f'❌🔍 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции или платформы.</b>',
+        response = await message.reply(
+            f'❌🔍 <b>Станция или платформа с таким названием не найдена. Пожалуйста, укажите корректное название станции.</b>',
             parse_mode='HTML')
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
     elif len(stations) == 1:
         await state.update_data(to_station=stations[0].code,
                                 to_station_title=f"«{stations[0].title}» ({stations[0].region})")
         suburban_info_check = get_suburban_info(from_station, stations[0].code, str(tz))
         if suburban_info_check:
-            await message.reply(
-                f'🏫🔍 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Маршрут следования для расписания пригородных поездов от {from_station_title} по «{stations[0].title}» ({stations[0].region}) был установлен.</b>',
-                parse_mode='HTML')
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="↕ | Поиск по маршруту следования", callback_data="send_suburban")]
+                ]
+            )
+
+            response = await message.reply(
+                f'🏫🔍 <b>Найдена станция «{stations[0].title}». Маршрут следования для расписания пригородных поездов от {from_station_title} по {stations[0].title} был установлен.</b>',
+                parse_mode='HTML', reply_markup=keyboard
+            )
+            messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+            await state.update_data(messages=messages)
+            await delete_previous_messages(messages, message.bot, response.message_id, state)
             await state.set_state()
         else:
-            await message.reply(
-                f'❌🔍 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено. Пожалуйста введите корректное название станции или платформы на вашем направлении КУДА вам нужно прибыть.</b>',
+            response = await message.reply(
+                f'❌🔍 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено.</b>',
                 parse_mode='HTML')
-
+            messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+            await state.update_data(messages=messages)
     else:
-        await message.reply(
+        response = await message.reply(
             f'🏫🔍 <b>Найдены следующие станции с похожим названием:</b>',
             parse_mode='HTML', reply_markup=(await select_stations_keyboard(stations, direction='to', state=state)))
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
 
 
 @route_selector.callback_query(SelectStationCallback.filter())
@@ -148,44 +198,71 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
 
     stations_list = data['stations']
     station = stations_list[callback_data.code]
+    messages = data.get('messages', [])
+
     if callback_data.direction == 'from':
-        await callback.message.edit_text(
+        response = await callback.message.edit_text(
             f'🏫🔍 <b>Выбрана станция {station}. Введите название станции или платформы КУДА вы едете.</b>',
             parse_mode='HTML')
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
         await state.set_state(RouteSelectState.to_station_search)
         await state.update_data(from_station=callback_data.code, from_station_title=station)
     elif callback_data.direction == 'to':
         await state.update_data(to_station=callback_data.code, to_station_title=station)
         suburban_info_check = get_suburban_info(from_station, callback_data.code, str(tz))
         if suburban_info_check:
-            await callback.message.edit_text(
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="↕ | Поиск по маршруту следования", callback_data="send_suburban")]
+                ]
+            )
+
+            response = await callback.message.edit_text(
                 f'🏫🔍 <b>Найдена станция {station}. Маршрут следования для расписания пригородных поездов от {from_station_title} по {station} был установлен.</b>',
-                parse_mode='HTML')
+                parse_mode='HTML', reply_markup=keyboard
+            )
+            messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+            await state.update_data(messages=messages)
+            await delete_previous_messages(messages, callback.bot, response.message_id, state)
             await state.set_state()
         else:
-            await callback.message.edit_text(
-                f'❌🔍 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено. Пожалуйста введите корректное название станции или платформы на вашем направлении КУДА вам нужно прибыть.</b>',
+            response = await callback.message.edit_text(
+                f'❌🔍 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено.</b>',
                 parse_mode='HTML')
+            messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+            await state.update_data(messages=messages)
 
 
 @route_selector.message(RouteSelectState.from_city_search)
 async def from_city_handler(message: Message, state: FSMContext):
     cities = find_city(message.text.casefold())
+    data = await state.get_data()
+
+    messages = data.get('messages', [])
+    messages.append({'chat_id': message.chat.id, 'message_id': message.message_id})
+    await state.update_data(messages=messages)
 
     if len(cities) == 0:
-        await message.reply(
+        response = await message.reply(
             f"❌🔍 <b>Город с таким названием не найден. Пожалуйста, укажите корректное название города.</b>",
             parse_mode='HTML')
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
     elif len(cities) == 1:
-        await message.reply(
+        response = await message.reply(
             f'🏙🔍 <b>Найден город «{cities[0].region}». Введите название города КУДА вы едете.</b>',
             parse_mode='HTML')
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
         await state.update_data(from_city=cities[0].code, from_city_title=f"«{cities[0].region}»")
         await state.set_state(RouteSelectState.to_city_search)
     else:
-        await message.reply(
+        response = await message.reply(
             f'🏙🔍 <b>Найдены следующие города с похожим названием:</b>',
             parse_mode='HTML', reply_markup=(await select_cities_keyboard(cities, direction='from', state=state)))
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
 
 
 @route_selector.message(RouteSelectState.to_city_search)
@@ -197,26 +274,46 @@ async def to_city_handler(message: Message, state: FSMContext):
 
     from_city = data.get('from_city')
 
+    messages = data.get('messages', [])
+    messages.append({'chat_id': message.chat.id, 'message_id': message.message_id})
+    await state.update_data(messages=messages)
+
     if len(cities) == 0:
-        await message.reply(
+        response = await message.reply(
             f"❌🔍 <b>Город с таким названием не найден. Пожалуйста, укажите корректное название города.</b>",
             parse_mode='HTML')
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
     elif len(cities) == 1:
         await state.update_data(to_city=cities[0].code, to_city_title=f"«{cities[0].region}»")
         train_info_check = get_train_info(from_city, cities[0].code, str(tz))
         if train_info_check:
-            await message.reply(
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="↕ | Поиск по маршруту следования", callback_data="send_train")]
+                ]
+            )
+
+            response = await message.reply(
                 f'🏙🔍 <b>Найден город «{cities[0].region}». Маршрут следования для расписания поездов дальнего следования от {from_city_title} до «{cities[0].region}» был установлен.</b>',
-                parse_mode='HTML')
+                parse_mode='HTML', reply_markup=keyboard
+            )
+            messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+            await state.update_data(messages=messages)
+            await delete_previous_messages(messages, message.bot, response.message_id, state)
             await state.set_state()
         else:
-            await message.reply(
+            response = await message.reply(
                 f'❌🔍 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено. Пожалуйста введите корректное название города к которым имеется возможность доехать.</b>',
                 parse_mode='HTML')
+            messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+            await state.update_data(messages=messages)
     else:
-        await message.reply(
+        response = await message.reply(
             f'🏙🔍 <b>Найдены следующие города с похожим названием:</b>',
             parse_mode='HTML', reply_markup=(await select_cities_keyboard(cities, direction='to', state=state)))
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
 
 
 @route_selector.callback_query(SelectCityCallback.filter())
@@ -228,21 +325,37 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
 
     cities_list = data['cities']
     city = cities_list[callback_data.code]
+    messages = data.get('messages', [])
+
     if callback_data.direction == 'from':
-        await callback.message.edit_text(
+        response = await callback.message.edit_text(
             f'🏙🔍 <b>Выбран город {city}. Введите название города КУДА вы едете.</b>',
             parse_mode='HTML')
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
         await state.set_state(RouteSelectState.to_city_search)
         await state.update_data(from_city=callback_data.code, from_city_title=f"«{callback_data.region}»")
     elif callback_data.direction == 'to':
         await state.update_data(to_city=callback_data.code, to_city_title=f"«{callback_data.region}»")
         train_info_check = get_train_info(from_city, callback_data.code, str(tz))
         if train_info_check:
-            await callback.message.edit_text(
+            keyboard = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="↕ | Поиск по маршруту следования", callback_data="send_train")]
+                ]
+            )
+
+            response = await callback.message.edit_text(
                 f'🏙🔍 <b>Найден город {city}. Маршрут следования для расписания поездов дальнего следования от {from_city_title} до {city} был установлен.</b>',
-                parse_mode='HTML')
+                parse_mode='HTML', reply_markup=keyboard
+            )
+            messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+            await state.update_data(messages=messages)
+            await delete_previous_messages(messages, callback.bot, response.message_id, state)
             await state.set_state()
         else:
-            await callback.message.edit_text(
+            response = await callback.message.edit_text(
                 f'❌🔍 <b>К сожалению при поиске расписания по указанному вашему маршруту следования ничего не было найдено. Пожалуйста введите корректное название города к которым имеется возможность доехать.</b>',
                 parse_mode='HTML')
+            messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+            await state.update_data(messages=messages)
