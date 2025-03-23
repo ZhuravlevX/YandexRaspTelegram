@@ -6,12 +6,15 @@ import pytz
 import requests
 from babel.dates import format_date
 from dotenv import load_dotenv
+
 from src.utils.load_config import load_config
 from src.models.search_response import SearchResponse
+from src.get_weather_info import get_weather_code
 
 load_dotenv()
 
 token_yandex = os.getenv('TOKEN_YANDEX')
+token_owm = os.getenv('TOKEN_OWM')
 token_bot = os.getenv('TOKEN_BOT')
 
 config = load_config()
@@ -94,7 +97,7 @@ def get_suburban_info(from_station: str, to_station: str, tz: str) -> str | None
                 break
 
             suburban_info.append(this_suburban_info)
-            msg = f'🗓 <b>Расписание пригородных поездов «{info.from_.title}» – «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+            msg = f'🗓 <b>Расписание пригородных поездов «{info.from_.title}» ({get_weather_code(from_station)}) – «{info.to.title}» ({get_weather_code(to_station)}) на {formatted_date}</b>\n\n' + '\n'.join(
                 suburban_info)
         return msg if suburban_info else None
 

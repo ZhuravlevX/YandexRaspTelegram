@@ -30,6 +30,10 @@ def find_stations() -> dict[str, dict[str, str]]:
                 for station in settlement.stations:
                     if not (station.transport_type == 'train' or station.station_type == 'airport'):
                         continue
+
+                    if not station.latitude and station.longitude == "":
+                        continue
+
                     title = station.title.lower()
                     title = re.sub(r"\W", '', title)
                     code = station.codes.yandex_code
@@ -39,6 +43,8 @@ def find_stations() -> dict[str, dict[str, str]]:
 
                     stations[title] = {
                         "title": station.title,
+                        "latitude": station.latitude,
+                        "longitude": station.longitude,
                         "code": code,
                         "region": region.title,
                         "station_type": station.station_type,

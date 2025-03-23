@@ -6,6 +6,8 @@ import pytz
 import requests
 from babel.dates import format_date
 from dotenv import load_dotenv
+
+from src.get_weather_info import get_weather_title
 from src.utils.load_config import load_config
 from src.models.search_response_train import SearchResponse
 
@@ -85,7 +87,7 @@ def get_train_info(from_city: str, to_city: str, tz: str) -> str | None:
                 break
 
             train_info.append(this_train_info)
-            msg = f'🗓 <b>Расписание поездов дальнего следования «{info.from_.title}» – «{info.to.title}» на {formatted_date}</b>\n\n' + '\n'.join(
+            msg = f'🗓 <b>Расписание поездов дальнего следования «{info.from_.title}» ({get_weather_title(info.from_.title)}) – «{info.to.title}» ({get_weather_title(info.to.title)}) на {formatted_date}</b>\n\n' + '\n'.join(
                 train_info)
         return msg if train_info else None
 
