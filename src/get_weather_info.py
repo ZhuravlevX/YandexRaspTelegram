@@ -11,6 +11,7 @@ weather_emoji = {
     "clear sky": "☀️",
     "few clouds": "🌤",
     "light rain": "🌦",
+    "moderate rain": "🌧",
     "broken clouds": "☁️",
     "overcast clouds": "☁️",
     "scattered clouds": "☁️",
