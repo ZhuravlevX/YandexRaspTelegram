@@ -97,3 +97,4 @@ pip-selfcheck.json
 .idea
 
 stations.json
+Cargo.lock
