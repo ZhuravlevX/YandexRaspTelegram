@@ -17,9 +17,11 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMedia
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.types.input_file import FSInputFile
+from aiogram.client.default import DefaultBotProperties
 
 from src.get_suburban_info import get_suburban_info
 from src.get_train_info import get_train_info
+from src.metro.select_stations import metro_route
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
 
@@ -37,6 +39,7 @@ russian_timezones = config.russian_timezones
 dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
+dp.include_router(metro_route)
 
 
 class FeedbackStates(StatesGroup):
@@ -259,7 +262,8 @@ async def handle_send_train(callback_query: types.CallbackQuery, state: FSMConte
 async def send_routes(message: Message, state: FSMContext):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
-                          InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")]])
+                          InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")],
+                         [InlineKeyboardButton(text="Метро", callback_data="metro_find_route")]])
     await message.reply("🧭🔍 <b>Выберите, какой тип маршрута следования для расписания вам необходимо установить.</b>",
                         parse_mode='HTML', reply_markup=keyboard)
     await state.set_state()
@@ -522,7 +526,8 @@ async def ask_reply_text(callback_query: CallbackQuery, state: FSMContext):
     if callback_query.message.chat.id != int(admin_id):
         return
     user_id = int(callback_query.data.split("_")[1])
-    reply_prompt_message = await bot.send_message(chat_id=admin_id, text="📝 <b>Пожалуйста, введите текст ответа пользователю:</b>",
+    reply_prompt_message = await bot.send_message(chat_id=admin_id,
+                                                  text="📝 <b>Пожалуйста, введите текст ответа пользователю:</b>",
                                                   parse_mode='HTML')
     await state.update_data(reply_user_id=user_id, reply_prompt_message_id=reply_prompt_message.message_id)
     await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
@@ -614,5 +619,5 @@ async def send_requests_url(message: Message, state: FSMContext):
 
 
 if __name__ == '__main__':
-    bot = Bot(token=token_bot)
+    bot = Bot(token=token_bot, default=DefaultBotProperties(parse_mode='HTML'))
     asyncio.run(dp.start_polling(bot))
