@@ -49,7 +49,7 @@ async fn get_search(query: web::Query<Query>, state: web::Data<AppState>) -> imp
                 .collect();
             
             match jaro_winkler(query.q.to_lowercase().as_str(), station_name.as_str()) {
-                ..0.8 => None,
+                ..0.85 => None,
                 score @ _ => Some(SearchResult { station, score }),
             }
         })
