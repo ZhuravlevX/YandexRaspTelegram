@@ -1,10 +1,10 @@
+use crate::AppState;
 use crate::functions::convert_in_station_mini;
 use crate::functions::getters::find_station_by_id;
 use crate::functions::route_time::calc_route_time;
-use crate::types::router::{RouterRequest, RouterResponse};
 use crate::types::StationMini;
-use crate::AppState;
-use actix_web::{get, web, HttpResponse, Responder};
+use crate::types::router::{RouterRequest, RouterResponse};
+use actix_web::{HttpResponse, Responder, error, get, web};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -31,7 +31,7 @@ pub async fn get_route(
     query: web::Query<Query>,
     client: web::Data<awc::Client>,
     state: web::Data<AppState>,
-) -> impl Responder {
+) -> error::Result<impl Responder> {
     let mut router_res = client
         .post(&state.env.router_api_url)
         .insert_header((
@@ -43,15 +43,15 @@ pub async fn get_route(
             to: query.to,
         })
         .await
-        .unwrap();
+        .map_err(|_| error::ErrorBadGateway("Error sending route request"))?;
 
     if !router_res.status().is_success() {
-        return HttpResponse::BadRequest().finish();
+        return Err(error::ErrorNotFound("Route not found"));
     }
 
     let schema_read = state.schema.read();
     let Some(schema) = schema_read.as_ref() else {
-        return HttpResponse::ServiceUnavailable().body("Schema not loaded yet");
+        return Err(error::ErrorServiceUnavailable("Schema not loaded yet"));
     };
 
     let router_res = router_res.json::<RouterResponse>().await.unwrap();
@@ -90,5 +90,5 @@ pub async fn get_route(
         })
     }
 
-    HttpResponse::Ok().json(res)
+    Ok(HttpResponse::Ok().json(res))
 }
