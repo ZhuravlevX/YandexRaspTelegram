@@ -4,16 +4,18 @@ import logging
 import os
 import random
 
+from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.state import StatesGroup, State
 from pytz import timezone
 from datetime import datetime
 
 from aiogram import Bot, Dispatcher, types
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, ExceptionTypeFilter
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.mongo import MongoStorage
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message, CallbackQuery
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message, CallbackQuery, \
+    ErrorEvent
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.types.input_file import FSInputFile
@@ -21,6 +23,7 @@ from aiogram.client.default import DefaultBotProperties
 
 from src.get_suburban_info import get_suburban_info
 from src.get_train_info import get_train_info
+from src.get_underground_info import get_underground_info
 from src.metro.select_stations import metro_route
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
@@ -33,6 +36,7 @@ token_bot = os.getenv('TOKEN_BOT')
 
 config = load_config()
 train_urls = config.train_urls
+underground_urls = config.underground_urls
 suburban_urls = config.suburban_urls
 admin_id = os.getenv('ADMIN_ID')
 russian_timezones = config.russian_timezones
@@ -40,7 +44,6 @@ dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
 dp.include_router(metro_route)
-
 
 class FeedbackStates(StatesGroup):
     awaiting_feedback = State()
@@ -51,6 +54,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
                     datefmt='%d-%m-%y %H:%M:%S')
 auto_update_users = {}
 
+@dp.error(ExceptionTypeFilter(TelegramAPIError))
+async def handle_my_custom_exception(event: ErrorEvent):
+    pass
 
 @dp.message(CommandStart())
 async def send_welcome(message: Message, state: FSMContext):
@@ -163,6 +169,109 @@ async def send_suburbans(message: Message, state: FSMContext):
         await update_suburbans(initial_message, user_id, state)
     await state.set_state()
 
+# Undergrounds
+async def update_underground(message: Message, user_id: int, state: FSMContext):
+    remaining_time = 3600
+    data = await state.get_data()
+    tz = timezone(data.get('timezone', 'Europe/Moscow'))
+
+    from_station_underground = data.get('from_station_underground')
+    to_station_underground = data.get('to_station_underground')
+
+    auto_update_users[user_id] = True
+
+    for i in range(3600):
+        current_time = datetime.now(tz).strftime('%H:%M')
+        train_info = get_underground_info(from_station_underground, to_station_underground)
+        random_image = random.choice(underground_urls)
+
+        if not auto_update_users[user_id]:
+            train_info += f"\n🚇🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
+            media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+            await message.edit_media(media)
+            auto_update_users[user_id] = False
+            return
+
+        if train_info:
+            if data.get('enable_auto_update'):
+                if i < 3540:
+                    remaining_time -= 30
+                    real_remaining_time = remaining_time // 60
+                    additional_text = f"\n🚇⌛ <b>Следующее обновление каждые 30 секунд. Оставшееся время обновления: {real_remaining_time:.0f} минут.</b>"
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🚫 | Отменить автообновление", callback_data="cancel_update")]
+                    ])
+
+
+                else:
+                    additional_text = f"\n🚇⌛ <b>Автообновление было завершено в {current_time}, учтите актуальность данного расписания.</b>"
+                    auto_update_users[user_id] = False
+                    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                    ])
+
+                train_info += additional_text
+                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                await message.edit_media(media, reply_markup=keyboard)
+            else:
+                additional_text = f"\n🚇 <b>Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания.</b>"
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                ])
+
+                train_info += additional_text
+                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                await message.edit_media(media, reply_markup=keyboard)
+                auto_update_users[user_id] = False
+                return
+            await asyncio.sleep(30)
+            new_train_info = get_underground_info(from_station_underground, to_station_underground)
+            if new_train_info != train_info:
+                train_info = new_train_info
+                train_info += additional_text
+                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                try:
+                    await message.edit_media(media, reply_markup=keyboard)
+                except:
+                    pass
+        else:
+            await message.edit_text(
+                "🚇🚫 <b>К сожалению, по вашему маршруту следования мы не смогли составить маршрут. "
+                "Пожалуйста, укажите действительный маршрут следования к которому возможно проложить путь.</b>",
+                parse_mode='HTML')
+            auto_update_users[user_id] = False
+            return
+
+
+@dp.message(Command('underground'))
+async def send_underground(message: Message, state: FSMContext):
+    data = await state.get_data()
+    from_station_underground = data.get('from_station_underground')
+    to_station_underground = data.get('to_station_underground')
+    user_id = message.chat.id
+
+    if auto_update_users.get(user_id, False):
+        await message.reply("🚇↔ <b>Маршрут с автообновлением на данный момент активно. "
+                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
+                            parse_mode='HTML')
+        return
+
+    if not from_station_underground or not to_station_underground:
+        await message.reply("🚇 <b>Маршрут следования не был установлен. "
+                            "Пожалуйста, установите маршрут перед построением пути следования до конечной станции.</b>",
+                            parse_mode='HTML')
+        return
+    else:
+        initial_message = await message.reply("🚇↔ <b>Строим маршрут следования к конечной станции...</b>",
+                                              parse_mode='HTML')
+        await update_underground(initial_message, user_id, state)
+    await state.set_state()
+
+@dp.callback_query(lambda c: c.data == "send_underground")
+async def handle_send_underground(callback_query: types.CallbackQuery, state: FSMContext):
+    await send_underground(callback_query.message, state)
+    await callback_query.message.delete()
+
 
 # Trains
 async def update_trains(message: Message, user_id: int, state: FSMContext):
@@ -263,8 +372,8 @@ async def send_routes(message: Message, state: FSMContext):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
                           InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")],
-                         [InlineKeyboardButton(text="Метро", callback_data="metro_find_route")]])
-    await message.reply("🧭🔍 <b>Выберите, какой тип маршрута следования для расписания вам необходимо установить.</b>",
+                         [InlineKeyboardButton(text="🚇 | Московский метрополитен", callback_data="metro_find_route")]])
+    await message.reply("🧭🔍 <b>Выберите, какой тип маршрута следования вам необходимо установить.</b>",
                         parse_mode='HTML', reply_markup=keyboard)
     await state.set_state()
 
@@ -273,8 +382,9 @@ async def send_routes(message: Message, state: FSMContext):
 async def handle_schedule(callback_query: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
-                          InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")]])
-    await callback_query.message.reply("🗓🔍 <b>Выберите какой тип расписание транспорта вам необходимо узнать.</b>",
+                          InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")],
+                         [InlineKeyboardButton(text="🚇 | Московский метрополитен", callback_data="send_underground")]])
+    await callback_query.message.reply("🗓🔍 <b>Выберите какой тип транспорта вам необходимо узнать.</b>",
                                        parse_mode='HTML', reply_markup=keyboard)
 
 
@@ -282,9 +392,10 @@ async def handle_schedule(callback_query: types.CallbackQuery):
 async def handle_routes(callback_query: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
-                          InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")]])
+                          InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")],
+                         [InlineKeyboardButton(text="🚇 | Московский метрополитен", callback_data="metro_find_route")]])
     await callback_query.message.reply(
-        "🧭🔍 <b>Выберите какой тип маршрут следования для расписания вам необходимо установить.</b>", parse_mode='HTML',
+        "🧭🔍 <b>Выберите какой тип маршрут следования вам необходимо установить.</b>", parse_mode='HTML',
         reply_markup=keyboard)
 
 
