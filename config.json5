@@ -13,6 +13,19 @@
     'https://railgallery.ru/photo/01/96/32/196322.jpg'
   ],
 
+  // Список ссылок на картинки электропоездов московского метрополитена для ответов бота
+  underground_urls: [
+    'https://transphoto.org/photo/16/13/29/1613290.jpg',
+    'https://transphoto.org/photo/20/80/37/2080372.jpg',
+    'https://transphoto.org/photo/21/03/84/2103842.jpg',
+    'https://transphoto.org/photo/20/67/68/2067681.jpg',
+    'https://transphoto.org/photo/20/18/37/2018370.jpg',
+    'https://transphoto.org/photo/19/69/10/1969103.jpg',
+    'https://transphoto.org/photo/15/65/80/1565806.jpg?1',
+    'https://transphoto.org/photo/21/02/28/2102280.jpg',
+    'https://transphoto.org/photo/20/41/86/2041862.jpg'
+  ],
+
   // Список ссылок на картинки поездов дальнего следования для ответов бота
   train_urls: [
     'https://railgallery.ru/photo/02/69/99/269991.jpg',
