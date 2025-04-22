@@ -26,9 +26,7 @@ def get_train(station_id, next_station_id) -> Train | None:
 def build_part(part: Part, last):
     if len(part.nodes) < 2: return ''
     first_station = part.nodes[0]
-    msg = f'<b>Время до прибытия поезда на станцию «{first_station.name}» ({first_station.lineName}): </b>'
-
-
+    msg = f'<b>Прибытие поезда на «{first_station.name}» ({first_station.lineName}): </b>'
 
     train = get_train(first_station.id, part.nodes[1].id)
 
@@ -37,24 +35,31 @@ def build_part(part: Part, last):
         minutes, seconds = divmod(duration, 60)
 
         if minutes == 0:
-            duration_time = f'{int(seconds)} секунд'
+            duration_time = f'{int(seconds)} сек.'
         elif seconds == 0:
-            duration_time = "Поезд прибывает на станцию"
+            duration_time = "Прибывает"
         else:
-            duration_time = f'{int(minutes)} минут {int(seconds)} секунд'
+            duration_time = f'{int(minutes)} мин. {int(seconds)} сек.'
 
         load = ['' for i in train.wagons.keys()]
         for i, l in train.wagons.items():
             load[i - 1] = l
         msg += f'<b>{duration_time}</b>\n'
-        msg += '<i>Загруженность вагонов:</i>\n'
-        msg += f'{"".join([load_emoji[l] for l in load])}\n'
+        # msg += '<i>Загруженность вагонов:</i>\n'
+        # msg += f'{"".join([load_emoji[l] for l in load])}\n'
+        if load.count('low') > len(load) / 2:
+            msg += 'Вагоны свободны (🟢)\n'
+        elif load.count('medium') > len(load) / 2:
+            msg += '<i>Вагоны умеренно свободны (🟡)\n'
+        elif load.count('high') > len(load) / 2:
+            msg += '<i>Вагоны заполнены (🔴)</i>\n'
     else:
         msg += '<b>Неизвестно</b>\n'
-        msg += '<i>Загруженность вагонов:</i>\n'
-        msg += '⬜⬜⬜⬜⬜⬜⬜\n'
+        msg += 'Нету данных (⚪)\n'
+        # msg += '<i>Загруженность вагонов:</i>\n'
+        # msg += '⬜⬜⬜⬜⬜⬜⬜\n'
 
-    msg += f'<i>Ехать до {"конечной станции маршрута" if last else "станции пересадки"}: {part.duration // 60} минут</i>\n\n'
+    msg += f'<i>До {"конечной" if last else "пересадки"} – {part.duration // 60} мин.</i>\n\n'
     return msg
 
 
@@ -65,7 +70,7 @@ def stations_to_str(stations: List[StationMini]):
 
 
 def build_route_message(route: RouterResponse):
-    msg = f'<b>🚇↔ Маршрут следования от станции «{route.parts[0].nodes[0].name}» ({route.parts[0].nodes[0].lineName}) до станции «{route.parts[-1].nodes[-1].name}» ({route.parts[-1].nodes[-1].lineName})</b>\n\n<b><i>От</i></b> '
+    msg = f'<b>↔ Путь от «{route.parts[0].nodes[0].name}» ({route.parts[0].nodes[0].lineName}) до «{route.parts[-1].nodes[-1].name}» ({route.parts[-1].nodes[-1].lineName})</b>\n\n<b><i>От</i></b> '
     for part in route.parts[:-1]:
         msg += stations_to_str(part.nodes)
         msg += ' ↪ '
@@ -76,11 +81,11 @@ def build_route_message(route: RouterResponse):
     minutes, _ = divmod(remainder, 60)
 
     if hours > 0:
-        duration_time = f'{int(hours)} час {int(minutes)} минут'
+        duration_time = f'{int(hours)} час {int(minutes)} мин.'
     else:
-        duration_time = f'{int(minutes)} минут'
+        duration_time = f'{int(minutes)} мин.'
 
-    msg += f'\n<i>Время в пути составит: {duration_time}</i>'
+    msg += f'\n<i>Общее время пути: {duration_time}</i>'
     msg += '\n\n'
 
     for part in route.parts[:-1]:
