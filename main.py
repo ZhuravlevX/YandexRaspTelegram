@@ -23,7 +23,6 @@ from aiogram.client.default import DefaultBotProperties
 from src.get_suburban_info import get_suburban_info
 from src.get_train_info import get_train_info
 from src.get_underground_info import get_underground_info
-from src.metro.select_stations import metro_route
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
 from src.utils.ImageSelector import ImageSelector
@@ -43,7 +42,6 @@ russian_timezones = config.russian_timezones
 dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
-dp.include_router(metro_route)
 
 class FeedbackStates(StatesGroup):
     awaiting_feedback = State()
@@ -385,31 +383,58 @@ async def handle_send_train(callback_query: types.CallbackQuery, state: FSMConte
 # Schedule and route
 @dp.message(Command('route'))
 async def send_routes(message: Message, state: FSMContext):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
-                          InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")],
-                         [InlineKeyboardButton(text="🚇 | Московский метрополитен", callback_data="metro_find_route")]])
+    data = await state.get_data()
+    tz = data.get('timezone', 'Europe/Moscow')
+
+    if tz == 'Europe/Moscow':
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
+                              InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")],
+                             [InlineKeyboardButton(text="🚇 | Московский метрополитен",
+                                                   callback_data="find_underground_route")]])
+    else:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
+                              InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")]])
     await message.reply("🧭🔍 <b>Выберите, какой тип маршрута следования вам необходимо установить.</b>",
                         parse_mode='HTML', reply_markup=keyboard)
     await state.set_state()
 
 
 @dp.callback_query(lambda c: c.data == "schedule_route")
-async def handle_schedule(callback_query: types.CallbackQuery):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
-                          InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")],
-                         [InlineKeyboardButton(text="🚇 | Московский метрополитен", callback_data="send_underground")]])
+async def handle_schedule(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    tz = data.get('timezone', 'Europe/Moscow')
+
+    if tz == 'Europe/Moscow':
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
+                              InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")],
+                             [InlineKeyboardButton(text="🚇 | Московский метрополитен",
+                                                   callback_data="send_underground")]])
+    else:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
+                              InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")]])
     await callback_query.message.reply("🗓🔍 <b>Выберите какой тип транспорта вам необходимо узнать.</b>",
                                        parse_mode='HTML', reply_markup=keyboard)
 
 
 @dp.callback_query(lambda c: c.data == "routes")
-async def handle_routes(callback_query: types.CallbackQuery):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
-                          InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")],
-                         [InlineKeyboardButton(text="🚇 | Московский метрополитен", callback_data="metro_find_route")]])
+async def handle_routes(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    tz = data.get('timezone', 'Europe/Moscow')
+
+    if tz == 'Europe/Moscow':
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
+                              InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")],
+                             [InlineKeyboardButton(text="🚇 | Московский метрополитен",
+                                                   callback_data="find_underground_route")]])
+    else:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
+                              InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")]])
     await callback_query.message.reply(
         "🧭🔍 <b>Выберите какой тип маршрут следования вам необходимо установить.</b>", parse_mode='HTML',
         reply_markup=keyboard)

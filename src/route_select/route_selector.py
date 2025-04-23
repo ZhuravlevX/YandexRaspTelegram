@@ -400,45 +400,62 @@ async def select_underground_keyboard(stations: list[StationMini], direction: Li
 
 
 async def select_underground(station_id, direction, message: Message, state: FSMContext):
-    """Обрабатывает выбор станции и проверяет совпадение отправления и назначения."""
     station = StationMini(**requests.get(f'http://127.0.0.1:8080/station/mini/{station_id}').json())
     data = await state.get_data()
 
-    # Проверяем совпадение станций
     if direction == "to" and station_id == data.get("from_station_underground"):
-        await message.reply(
-            "❌🔍 <b>Конечная станция не может совпадать со станцией отправления. Выберите другую станцию.</b>")
+        response = await message.reply(
+            "❌🔍 <b>Конечная станция не может совпадать со станцией отправления. Выберите другую станцию.</b>"
+        )
+        messages = data.get("messages", [])
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
         return
     if direction == "from" and station_id == data.get("to_station_underground"):
-        await message.reply(
-            "❌🔍 <b>Станция отправления не может совпадать с конечной станцией. Выберите другую станцию.</b>")
+        response = await message.reply(
+            "❌🔍 <b>Станция отправления не может совпадать с конечной станцией. Выберите другую станцию.</b>"
+        )
+        messages = data.get("messages", [])
+        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+        await state.update_data(messages=messages)
         return
 
     await state.update_data({f'{direction}_station_underground': station_id})
     next_state = RouteSelectState.to_station_underground if direction == 'from' else None
     await state.set_state(next_state)
 
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="↕ | Построить путь", callback_data="send_underground")]
+        ]
+    )
     if direction == 'from':
-        await message.bot.send_message(
+        response = await message.bot.send_message(
             message.chat.id,
             f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Введите название станции КУДА вы отправляетесь.</b>'
         )
     else:
-        await message.bot.send_message(
+        response = await message.bot.send_message(
             message.chat.id,
-            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>'
+            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
+            reply_markup=keyboard
         )
+        # Удаляем все предыдущие сообщения
+        messages = data.get("messages", [])
+        await delete_previous_messages(messages, message.bot, response.message_id, state)
+
+    # Сохраняем ID нового сообщения
+    messages = data.get("messages", [])
+    messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
+    await state.update_data(messages=messages)
 
 @route_selector.callback_query(SelectUndergroundCallback.filter())
 async def handle_select_underground(callback: CallbackQuery, callback_data: SelectUndergroundCallback, state: FSMContext):
-    """Обрабатывает выбор станции метро через кнопку."""
     station_id = callback_data.id
     direction = callback_data.direction
 
-    # Получаем данные о текущем состоянии
     data = await state.get_data()
 
-    # Проверяем на совпадение станций
     if direction == "to" and station_id == data.get("from_station_underground"):
         await callback.message.edit_text(
             "❌🔍 <b>Конечная станция не может совпадать со станцией отправления. Выберите другую станцию.</b>",
@@ -452,30 +469,32 @@ async def handle_select_underground(callback: CallbackQuery, callback_data: Sele
         )
         return
 
-    # Получаем информацию о выбранной станции
     station = StationMini(**requests.get(f'http://127.0.0.1:8080/station/mini/{station_id}').json())
 
-    # Сохраняем данные в FSMContext
     await state.update_data({f'{direction}_station_underground': station_id})
 
     next_state = RouteSelectState.to_station_underground if direction == 'from' else None
     await state.set_state(next_state)
 
-    # Обновляем сообщение
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="↕ | Построить путь", callback_data="send_underground")]
+        ]
+    )
     if direction == 'from':
         await callback.message.edit_text(
             f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Введите название станции КУДА вы отправляетесь.</b>',
             parse_mode="HTML"
         )
     else:
-        await callback.message.edit_text(
-            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
-            parse_mode="HTML"
+        response = await callback.message.edit_text(
+            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>', reply_markup=keyboard
         )
+        messages = data.get("messages", [])
+        await delete_previous_messages(messages, callback.bot, response.message_id, state)
 
 @route_selector.callback_query(lambda c: c.data == 'find_underground_route')
-async def find_route(c: CallbackQuery, state: FSMContext):
-    """Начинает процесс выбора станции отправления."""
+async def find_route_underground(c: CallbackQuery, state: FSMContext):
     await state.set_state(RouteSelectState.from_station_underground)
     response = await c.message.edit_text('🚇🔍 <b>Введите название станции ОТКУДА вы отправляетесь.</b>')
     data = await state.get_data()
@@ -486,7 +505,6 @@ async def find_route(c: CallbackQuery, state: FSMContext):
 
 @route_selector.message(RouteSelectState.from_station_underground)
 async def select_from_underground(message: Message, state: FSMContext):
-    """Обрабатывает ввод станции отправления."""
     search_res = requests.get(f'http://127.0.0.1:8080/station/search?q={message.text}')
     data = await state.get_data()
 
@@ -518,17 +536,17 @@ async def select_from_underground(message: Message, state: FSMContext):
 
 @route_selector.message(RouteSelectState.to_station_underground)
 async def select_to_underground(message: Message, state: FSMContext):
-    """Обрабатывает ввод станции назначения."""
     search_res = requests.get(f'http://127.0.0.1:8080/station/search?q={message.text}')
     data = await state.get_data()
 
-    messages = data.get('messages', [])
+    messages = data.get("messages", [])
     messages.append({'chat_id': message.chat.id, 'message_id': message.message_id})
     await state.update_data(messages=messages)
 
     if not search_res.ok:
         response = await message.reply(
-            '❌🔍 <b>Станция с таким названием не найдена. Пожалуйста, укажите корректное название станции.</b>')
+            '❌🔍 <b>Станция с таким названием не найдена. Пожалуйста, укажите корректное название станции.</b>'
+        )
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
         return
