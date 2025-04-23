@@ -18,6 +18,7 @@ from src.route_select.find_city import find_city
 from src.get_suburban_info import get_suburban_info
 from src.get_train_info import get_train_info
 from src.models.metro_api import SearchResponse, StationMini
+from src.utils.delete_previous_messages import delete_previous_messages
 
 station_emojis = {
     "train_station": "🏫",
@@ -119,17 +120,6 @@ async def find_route_city(c: CallbackQuery, state: FSMContext):
     messages = data.get('messages', [])
     messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
     await state.update_data(messages=messages)
-
-
-async def delete_previous_messages(messages: list, bot, last_message_id: int, state: FSMContext):
-    for message_id in messages:
-        if message_id['message_id'] == last_message_id:
-            continue
-        try:
-            await bot.delete_message(chat_id=message_id['chat_id'], message_id=message_id['message_id'])
-        except Exception as e:
-            print(f"Failed to delete message {message_id['message_id']}: {e}")
-    await state.update_data(messages=[])
 
 
 @route_selector.message(RouteSelectState.from_station_search)
@@ -388,7 +378,8 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
             await state.update_data(messages=messages)
 
 
-async def select_underground_keyboard(stations: list[StationMini], direction: Literal['from', 'to']) -> InlineKeyboardMarkup:
+async def select_underground_keyboard(stations: list[StationMini],
+                                      direction: Literal['from', 'to']) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     for station in stations:
         builder.button(
@@ -449,8 +440,10 @@ async def select_underground(station_id, direction, message: Message, state: FSM
     messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
     await state.update_data(messages=messages)
 
+
 @route_selector.callback_query(SelectUndergroundCallback.filter())
-async def handle_select_underground(callback: CallbackQuery, callback_data: SelectUndergroundCallback, state: FSMContext):
+async def handle_select_underground(callback: CallbackQuery, callback_data: SelectUndergroundCallback,
+                                    state: FSMContext):
     station_id = callback_data.id
     direction = callback_data.direction
 
@@ -488,10 +481,12 @@ async def handle_select_underground(callback: CallbackQuery, callback_data: Sele
         )
     else:
         response = await callback.message.edit_text(
-            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>', reply_markup=keyboard
+            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
+            reply_markup=keyboard
         )
         messages = data.get("messages", [])
         await delete_previous_messages(messages, callback.bot, response.message_id, state)
+
 
 @route_selector.callback_query(lambda c: c.data == 'find_underground_route')
 async def find_route_underground(c: CallbackQuery, state: FSMContext):
