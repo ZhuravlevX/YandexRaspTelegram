@@ -429,6 +429,49 @@ async def select_underground(station_id, direction, message: Message, state: FSM
             f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>'
         )
 
+@route_selector.callback_query(SelectUndergroundCallback.filter())
+async def handle_select_underground(callback: CallbackQuery, callback_data: SelectUndergroundCallback, state: FSMContext):
+    """Обрабатывает выбор станции метро через кнопку."""
+    station_id = callback_data.id
+    direction = callback_data.direction
+
+    # Получаем данные о текущем состоянии
+    data = await state.get_data()
+
+    # Проверяем на совпадение станций
+    if direction == "to" and station_id == data.get("from_station_underground"):
+        await callback.message.edit_text(
+            "❌🔍 <b>Конечная станция не может совпадать со станцией отправления. Выберите другую станцию.</b>",
+            parse_mode="HTML"
+        )
+        return
+    if direction == "from" and station_id == data.get("to_station_underground"):
+        await callback.message.edit_text(
+            "❌🔍 <b>Станция отправления не может совпадать с конечной станцией. Выберите другую станцию.</b>",
+            parse_mode="HTML"
+        )
+        return
+
+    # Получаем информацию о выбранной станции
+    station = StationMini(**requests.get(f'http://127.0.0.1:8080/station/mini/{station_id}').json())
+
+    # Сохраняем данные в FSMContext
+    await state.update_data({f'{direction}_station_underground': station_id})
+
+    next_state = RouteSelectState.to_station_underground if direction == 'from' else None
+    await state.set_state(next_state)
+
+    # Обновляем сообщение
+    if direction == 'from':
+        await callback.message.edit_text(
+            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Введите название станции КУДА вы отправляетесь.</b>',
+            parse_mode="HTML"
+        )
+    else:
+        await callback.message.edit_text(
+            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
+            parse_mode="HTML"
+        )
 
 @route_selector.callback_query(lambda c: c.data == 'find_underground_route')
 async def find_route(c: CallbackQuery, state: FSMContext):
