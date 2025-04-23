@@ -3,12 +3,6 @@ import requests
 
 from src.models.metro_api import RouterResponse, Part, StationMini, Wagons, Train
 
-load_emoji = {
-    'low': '🟩',
-    'medium': '🟨',
-    'high': '🟥',
-}
-
 
 def get_train(station_id, next_station_id) -> Train | None:
     try:
@@ -45,19 +39,17 @@ def build_part(part: Part, last):
         for i, l in train.wagons.items():
             load[i - 1] = l
         msg += f'<b>{duration_time}</b>\n'
-        # msg += '<i>Загруженность вагонов:</i>\n'
-        # msg += f'{"".join([load_emoji[l] for l in load])}\n'
         if load.count('low') > len(load) / 2:
             msg += 'Вагоны свободны (🟢)\n'
         elif load.count('medium') > len(load) / 2:
-            msg += '<i>Вагоны умеренно свободны (🟡)\n'
-        elif load.count('high') > len(load) / 2:
-            msg += '<i>Вагоны заполнены (🔴)</i>\n'
+            msg += 'Вагоны умеренно свободны (🟡)\n'
+        elif load.count('mediumHigh') > len(load) / 2:
+            msg += 'Вагоны умеренно заполнены (🟠)\n'
+        elif load.count('High') > len(load) / 2:
+            msg += 'Вагоны заполнены (🔴)\n'
     else:
         msg += '<b>Неизвестно</b>\n'
         msg += 'Нету данных (⚪)\n'
-        # msg += '<i>Загруженность вагонов:</i>\n'
-        # msg += '⬜⬜⬜⬜⬜⬜⬜\n'
 
     msg += f'<i>До {"конечной" if last else "пересадки"} – {part.duration // 60} мин.</i>\n\n'
     return msg
@@ -100,6 +92,7 @@ def get_underground_info(from_station_underground: str, to_station_underground: 
     res = requests.get(f'http://127.0.0.1:8080/route?from={from_station_underground}&to={to_station_underground}')
 
     if not res.ok:
+        # print("API MosMetro error connect")
         return
 
     route = RouterResponse(**res.json())
