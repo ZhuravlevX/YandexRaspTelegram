@@ -17,7 +17,7 @@ from src.route_select.find_station import find_station
 from src.route_select.find_city import find_city
 from src.get_suburban_info import get_suburban_info
 from src.get_train_info import get_train_info
-from src.models.metro_api import SearchResponse, StationMini
+from src.models.search_response_underground import SearchResponse, StationMini
 from src.utils.delete_previous_messages import delete_previous_messages
 
 station_emojis = {

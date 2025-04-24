@@ -1,7 +1,7 @@
 from typing import List
 import requests
 
-from src.models.metro_api import RouterResponse, Part, StationMini, Wagons, Train
+from src.models.search_response_underground import RouterResponse, Part, StationMini, Wagons, Train
 
 
 def get_train(station_id, next_station_id) -> Train | None:
