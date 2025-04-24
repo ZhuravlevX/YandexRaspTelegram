@@ -402,14 +402,6 @@ async def select_underground(station_id, direction, message: Message, state: FSM
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
         return
-    if direction == "from" and station_id == data.get("to_station_underground"):
-        response = await message.reply(
-            "❌🔍 <b>Станция отправления не может совпадать с конечной станцией. Выберите другую станцию.</b>"
-        )
-        messages = data.get("messages", [])
-        messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
-        await state.update_data(messages=messages)
-        return
 
     await state.update_data({f'{direction}_station_underground': station_id})
     next_state = RouteSelectState.to_station_underground if direction == 'from' else None
@@ -431,11 +423,9 @@ async def select_underground(station_id, direction, message: Message, state: FSM
             f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
             reply_markup=keyboard
         )
-        # Удаляем все предыдущие сообщения
         messages = data.get("messages", [])
         await delete_previous_messages(messages, message.bot, response.message_id, state)
 
-    # Сохраняем ID нового сообщения
     messages = data.get("messages", [])
     messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
     await state.update_data(messages=messages)

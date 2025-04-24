@@ -39,13 +39,22 @@ def build_part(part: Part, last):
         for i, l in train.wagons.items():
             load[i - 1] = l
         msg += f'<b>{duration_time}</b>\n'
-        if load.count('low') > len(load) / 2:
+
+        load_counts = {
+            'low': load.count('low'),
+            'medium': load.count('medium'),
+            'mediumHigh': load.count('mediumHigh'),
+            'High': load.count('High')
+        }
+        most_common_load = max(load_counts, key=load_counts.get)
+
+        if most_common_load == 'low':
             msg += 'Вагоны свободны (🟢)\n'
-        elif load.count('medium') > len(load) / 2:
+        elif most_common_load == 'medium':
             msg += 'Вагоны умеренно свободны (🟡)\n'
-        elif load.count('mediumHigh') > len(load) / 2:
+        elif most_common_load == 'mediumHigh':
             msg += 'Вагоны умеренно заполнены (🟠)\n'
-        elif load.count('High') > len(load) / 2:
+        elif most_common_load == 'High':
             msg += 'Вагоны заполнены (🔴)\n'
     else:
         msg += '<b>Неизвестно</b>\n'
@@ -92,7 +101,6 @@ def get_underground_info(from_station_underground: str, to_station_underground: 
     res = requests.get(f'http://127.0.0.1:8080/route?from={from_station_underground}&to={to_station_underground}')
 
     if not res.ok:
-        # print("API MosMetro error connect")
         return
 
     route = RouterResponse(**res.json())
