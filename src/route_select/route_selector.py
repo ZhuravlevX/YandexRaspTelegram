@@ -139,8 +139,7 @@ async def from_station_handler(message: Message, state: FSMContext):
             f'🏫🔍 <b>Найдена станция «{stations[0].title}» ({stations[0].region}). Введите название станции или платформы КУДА вы едете.</b>')
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
-        await state.update_data(from_station=stations[0].code,
-                                from_station_title=f"«{stations[0].title}» ({stations[0].region})")
+        await state.update_data(from_station=stations[0].code)
         await state.set_state(RouteSelectState.to_station_search)
     else:
         response = await message.reply(
@@ -156,9 +155,7 @@ async def to_station_handler(message: Message, state: FSMContext):
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
     from_station = data.get('from_station')
-    from_station_title = data.get('to_station_title')
 
-    # Save message ID
     messages = data.get('messages', [])
     messages.append({'chat_id': message.chat.id, 'message_id': message.message_id})
     await state.update_data(messages=messages)
@@ -169,8 +166,7 @@ async def to_station_handler(message: Message, state: FSMContext):
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
     elif len(stations) == 1:
-        await state.update_data(to_station=stations[0].code,
-                                to_station_title=f"«{stations[0].title}» ({stations[0].region})")
+        await state.update_data(to_station=stations[0].code)
         suburban_info_check = get_suburban_info(from_station, stations[0].code, str(tz))
         if suburban_info_check:
             keyboard = InlineKeyboardMarkup(
@@ -180,7 +176,7 @@ async def to_station_handler(message: Message, state: FSMContext):
             )
 
             response = await message.reply(
-                f'🏫🔍 <b>Найдена станция «{stations[0].title}». Маршрут следования для расписания пригородных поездов от {from_station_title} по {stations[0].title} был установлен.</b>',
+                f'🏫🔍 <b>Найдена станция «{stations[0].title}». Маршрут следования для расписания пригородных поездов был установлен.</b>',
                 reply_markup=keyboard
             )
             messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
@@ -205,7 +201,6 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
     from_station = data.get('from_station')
-    from_station_title = data.get('from_station_title')
 
     stations_list = data['stations']
     station = stations_list[callback_data.code]
@@ -217,9 +212,9 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
         await state.set_state(RouteSelectState.to_station_search)
-        await state.update_data(from_station=callback_data.code, from_station_title=station)
+        await state.update_data(from_station=callback_data.code)
     elif callback_data.direction == 'to':
-        await state.update_data(to_station=callback_data.code, to_station_title=station)
+        await state.update_data(to_station=callback_data.code)
         suburban_info_check = get_suburban_info(from_station, callback_data.code, str(tz))
         if suburban_info_check:
             keyboard = InlineKeyboardMarkup(
@@ -229,7 +224,7 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
             )
 
             response = await callback.message.edit_text(
-                f'🏫🔍 <b>Найдена станция {station}. Маршрут следования для расписания пригородных поездов от {from_station_title} по {station} был установлен.</b>',
+                f'🏫🔍 <b>Найдена станция {station}. Маршрут следования для расписания пригородных поездов был установлен.</b>',
                 reply_markup=keyboard
             )
             messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
@@ -262,7 +257,7 @@ async def from_city_handler(message: Message, state: FSMContext):
             f'🏙🔍 <b>Найден город «{cities[0].region}». Введите название города КУДА вы едете.</b>')
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
-        await state.update_data(from_city=cities[0].code, from_city_title=f"«{cities[0].region}»")
+        await state.update_data(from_city=cities[0].code)
         await state.set_state(RouteSelectState.to_city_search)
     else:
         response = await message.reply(
@@ -275,7 +270,6 @@ async def from_city_handler(message: Message, state: FSMContext):
 @route_selector.message(RouteSelectState.to_city_search)
 async def to_city_handler(message: Message, state: FSMContext):
     data = await state.get_data()
-    from_city_title = data.get('from_city_title')
     cities = find_city(message.text.casefold())
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
 
@@ -291,7 +285,7 @@ async def to_city_handler(message: Message, state: FSMContext):
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
     elif len(cities) == 1:
-        await state.update_data(to_city=cities[0].code, to_city_title=f"«{cities[0].region}»")
+        await state.update_data(to_city=cities[0].code)
         train_info_check = get_train_info(from_city, cities[0].code, str(tz))
         if train_info_check:
             keyboard = InlineKeyboardMarkup(
@@ -301,7 +295,7 @@ async def to_city_handler(message: Message, state: FSMContext):
             )
 
             response = await message.reply(
-                f'🏙🔍 <b>Найден город «{cities[0].region}». Маршрут следования для расписания поездов дальнего следования от {from_city_title} до «{cities[0].region}» был установлен.</b>',
+                f'🏙🔍 <b>Найден город «{cities[0].region}». Маршрут следования для расписания поездов дальнего следования был установлен.</b>',
                 reply_markup=keyboard
             )
             messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
@@ -325,7 +319,6 @@ async def to_city_handler(message: Message, state: FSMContext):
 async def select_city_handler(callback: CallbackQuery, callback_data: SelectCityCallback, state: FSMContext):
     data = await state.get_data()
     from_city = data.get('from_city')
-    from_city_title = data.get('from_city_title')
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
 
     cities_list = data['cities']
@@ -338,9 +331,9 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
         await state.set_state(RouteSelectState.to_city_search)
-        await state.update_data(from_city=callback_data.code, from_city_title=f"«{callback_data.region}»")
+        await state.update_data(from_city=callback_data.code)
     elif callback_data.direction == 'to':
-        await state.update_data(to_city=callback_data.code, to_city_title=f"«{callback_data.region}»")
+        await state.update_data(to_city=callback_data.code)
         train_info_check = get_train_info(from_city, callback_data.code, str(tz))
         if train_info_check:
             keyboard = InlineKeyboardMarkup(
@@ -350,7 +343,7 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
             )
 
             response = await callback.message.edit_text(
-                f'🏙🔍 <b>Найден город {city}. Маршрут следования для расписания поездов дальнего следования от {from_city_title} до {city} был установлен.</b>',
+                f'🏙🔍 <b>Найден город {city}. Маршрут следования для расписания поездов дальнего следования был установлен.</b>',
                 reply_markup=keyboard
             )
             messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})

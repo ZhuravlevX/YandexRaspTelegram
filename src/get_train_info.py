@@ -60,11 +60,11 @@ def get_train_info(from_city: str, to_city: str, tz: str) -> str | None:
             minutes, _ = divmod(remainder, 60)
 
             if days > 0:
-                duration_time = f'{int(days)} день {int(hours)} час {int(minutes)} минут'
+                duration_time = f'{int(days)} д. {int(hours)} час {int(minutes)} мин.'
             elif hours > 0:
-                duration_time = f'{int(hours)} час {int(minutes)} минут'
+                duration_time = f'{int(hours)} час {int(minutes)} мин.'
             else:
-                duration_time = f'{minutes} минут'
+                duration_time = f'{minutes} мин.'
 
             time_until_arrival = train.departure - timezone_now
             hours, remainder = divmod(time_until_arrival.seconds, 3600)
@@ -72,9 +72,9 @@ def get_train_info(from_city: str, to_city: str, tz: str) -> str | None:
             if hours == 0 and minutes == 0:
                 time_until_arrival_str = 'Отправляться от вокзала или пункта остановки'
             elif hours == 0:
-                time_until_arrival_str = f'{minutes} минут'
+                time_until_arrival_str = f'{minutes} мин.'
             else:
-                time_until_arrival_str = f'{hours} час {minutes} минут'
+                time_until_arrival_str = f'{hours} час {minutes} мин.'
 
             this_train_info = f'{emoji} <b>{train.thread.number} | {train.thread.title}</b>\n' \
                               f'<i>Отправляется с {train.from_.title} в {train.departure.hour}:{train.departure.minute:02d} по местному времени</i>\n' \

@@ -81,8 +81,10 @@ def build_route_message(route: RouterResponse):
     hours, remainder = divmod(duration, 3600)
     minutes, _ = divmod(remainder, 60)
 
-    if hours > 0:
+    if hours > 0 and minutes > 0:
         duration_time = f'{int(hours)} час {int(minutes)} мин.'
+    elif hours > 0:
+        duration_time = f'{int(hours)} час'
     else:
         duration_time = f'{int(minutes)} мин.'
 
