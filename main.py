@@ -72,8 +72,7 @@ async def send_welcome(message: Message, state: FSMContext):
                                        "Данный бот позволяет вам быстро узнать расписание об вашем пригородном поезде или поездах дальнего следования. Для этого нужно лишь указать ОТКУДА и КУДА вам надо поехать и появиться полная информация об ближайших пригородных поездов и поездах дальнего следования.\n\n"
                                        "Для того, чтобы изменить маршрут следования или узнать расписание по текущему маршруту следования, нажмите кнопки ниже, либо воспользуйтесь командами /suburban, /train и /route.\n\n"
                                        "Если у вас есть предложение или вы нашли баги и ошибки в ответе бота, вы можете связаться с нами при помощи команды /feedback.\n\n"
-                                       "Также для корректно работы бота, НЕОБХОДИМО выбрать свой часовой пояс, чтобы расписание отображалось корректно вашем регионе. Это можно сделать в настройках бота.",
-                               parse_mode='HTML', reply_markup=keyboard)
+                                       "Также для корректно работы бота, НЕОБХОДИМО выбрать свой часовой пояс, чтобы расписание отображалось корректно вашем регионе. Это можно сделать в настройках бота.", reply_markup=keyboard)
     await state.set_state()
 
 
@@ -96,7 +95,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
 
         if not auto_update_users[user_id]:
             train_info += f"\n🚉🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
-            media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+            media = InputMediaPhoto(media=random_image, caption=train_info)
             await message.edit_media(media)
             auto_update_users[user_id] = False
             return
@@ -117,7 +116,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
                     ])
 
                 train_info += additional_text
-                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                media = InputMediaPhoto(media=random_image, caption=train_info)
                 await message.edit_media(media, reply_markup=keyboard)
             else:
                 additional_text = f"\n🚉 <b>Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания.</b>"
@@ -126,7 +125,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
                 ])
 
                 train_info += additional_text
-                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                media = InputMediaPhoto(media=random_image, caption=train_info)
                 await message.edit_media(media, reply_markup=keyboard)
                 auto_update_users[user_id] = False
                 return
@@ -134,8 +133,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
         else:
             await message.edit_text(
                 "🚆🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
-                "Пожалуйста, укажите действительный маршрут следования пригородного поезда.</b>",
-                parse_mode='HTML')
+                "Пожалуйста, укажите действительный маршрут следования пригородного поезда.</b>")
             auto_update_users[user_id] = False
             return
 
@@ -155,17 +153,15 @@ async def send_suburbans(message: Message, state: FSMContext):
 
     if auto_update_users.get(user_id, False):
         await message.reply("🚆🗓 <b>Расписание с автообновление на данный момент активно. "
-                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
-                            parse_mode='HTML')
+                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>")
         return
 
     if not from_station or not to_station:
         await message.reply("🚆🏫 <b>Маршрут следования не был установлен. "
-                            "Пожалуйста, установите маршрут перед поиском расписания следования пригородных поездов.</b>",
-                            parse_mode='HTML')
+                            "Пожалуйста, установите маршрут перед поиском расписания следования пригородных поездов.</b>")
         return
     else:
-        initial_message = await message.reply("🚆🗓 <b>Получаем расписание пригородных поездов...</b>", parse_mode='HTML')
+        initial_message = await message.reply("🚆🗓 <b>Получаем расписание пригородных поездов...</b>")
         await update_suburbans(initial_message, user_id, state)
     await state.set_state()
 
@@ -189,7 +185,7 @@ async def update_underground(message: Message, user_id: int, state: FSMContext):
         if not auto_update_users[user_id]:
             train_info = last_valid_train_info or train_info
             train_info += f"\n🚇🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
-            media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+            media = InputMediaPhoto(media=random_image, caption=train_info)
             await message.edit_media(media)
             auto_update_users[user_id] = False
             return
@@ -204,7 +200,6 @@ async def update_underground(message: Message, user_id: int, state: FSMContext):
                     if not train_info:
                         await message.edit_text(
                             "🚇🔄 <b>Повторная попытка собрать маршрут... Пожалуйста, подождите...</b>",
-                            parse_mode='HTML'
                         )
                         await asyncio.sleep(2)
                         await update_underground(message, user_id, state)
@@ -232,7 +227,7 @@ async def update_underground(message: Message, user_id: int, state: FSMContext):
                 ])
 
             train_info += additional_text
-            media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+            media = InputMediaPhoto(media=random_image, caption=train_info)
             await message.edit_media(media, reply_markup=keyboard)
         else:
             additional_text = f"\n🚇 <b>Расписание вызвано в {current_time} без автообновления.</b>"
@@ -240,7 +235,7 @@ async def update_underground(message: Message, user_id: int, state: FSMContext):
                 [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
             ])
             train_info += additional_text
-            media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+            media = InputMediaPhoto(media=random_image, caption=train_info)
             await message.edit_media(media, reply_markup=keyboard)
             auto_update_users[user_id] = False
             return
@@ -256,25 +251,21 @@ async def send_underground(message: Message, state: FSMContext):
 
     if auto_update_users.get(user_id, False):
         await message.reply("🚇↔ <b>Путь с автообновлением на данный момент активно. "
-                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
-                            parse_mode='HTML')
+                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>")
         return
 
     if not from_station_underground or not to_station_underground:
         await message.reply("🚇 <b>Маршрут следования не был установлен. "
-                            "Пожалуйста, установите маршрут перед построением пути следования до конечной станции.</b>",
-                            parse_mode='HTML')
+                            "Пожалуйста, установите маршрут перед построением пути следования до конечной станции.</b>")
         return
     else:
-        initial_message = await message.reply("🚇↔ <b>Строим маршрут следования к конечной станции...</b>",
-                                              parse_mode='HTML')
+        initial_message = await message.reply("🚇↔ <b>Строим маршрут следования к конечной станции...</b>")
         await update_underground(initial_message, user_id, state)
         await asyncio.sleep(10)
 
         try:
             await initial_message.edit_text("🚇🚫 <b>Не удалось получить информацию об маршруте следования. "
-                                            "Попробуйте снова позже или проверьте правильность введенных станций. В случае многократного раза, обращайтесь в /feedback.</b>",
-                                            parse_mode='HTML')
+                                            "Попробуйте снова позже или проверьте правильность введенных станций. В случае многократного раза, обращайтесь в /feedback.</b>")
             auto_update_users[user_id] = False
         except Exception as e:
             pass
@@ -305,7 +296,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
 
         if not auto_update_users[user_id]:
             train_info += f"\n🛤🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
-            media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+            media = InputMediaPhoto(media=random_image, caption=train_info)
             await message.edit_media(media)
             auto_update_users[user_id] = False
             return
@@ -326,7 +317,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
                     ])
 
                 train_info += additional_text
-                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                media = InputMediaPhoto(media=random_image, caption=train_info)
                 await message.edit_media(media, reply_markup=keyboard)
             else:
                 additional_text = f"\n🛤 <b>Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания.</b>"
@@ -335,7 +326,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
                 ])
 
                 train_info += additional_text
-                media = InputMediaPhoto(media=random_image, caption=train_info, parse_mode='HTML')
+                media = InputMediaPhoto(media=random_image, caption=train_info)
                 await message.edit_media(media, reply_markup=keyboard)
                 auto_update_users[user_id] = False
                 return
@@ -344,7 +335,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
             await message.edit_text(
                 "🚂🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
                 "Пожалуйста, укажите действительный маршрут следования поезда дальнего следования.</b>",
-                parse_mode='HTML')
+               )
             auto_update_users[user_id] = False
             return
 
@@ -359,17 +350,17 @@ async def send_trains(message: Message, state: FSMContext):
     if auto_update_users.get(user_id, False):
         await message.reply("🚂🗓 <b>Расписание с автообновление на данный момент активно. "
                             "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>",
-                            parse_mode='HTML')
+                           )
         return
 
     if not from_city or not to_city:
         await message.reply("🚂🏙 <b>Маршрут следования не был установлен. "
                             "Пожалуйста, установите маршрут перед поиском расписания следования электричек.</b>",
-                            parse_mode='HTML')
+                           )
         return
     else:
         initial_message = await message.reply("🚂🗓 <b>Получаем расписание поездов дальнего следования...</b>",
-                                              parse_mode='HTML')
+                                             )
         await update_trains(initial_message, user_id, state)
     await state.set_state()
 
@@ -397,7 +388,7 @@ async def send_routes(message: Message, state: FSMContext):
             inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
                               InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")]])
     await message.reply("🧭🔍 <b>Выберите, какой тип маршрута следования вам необходимо установить.</b>",
-                        parse_mode='HTML', reply_markup=keyboard)
+                       reply_markup=keyboard)
     await state.set_state()
 
 
@@ -417,7 +408,7 @@ async def handle_schedule(callback_query: types.CallbackQuery, state: FSMContext
             inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
                               InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")]])
     await callback_query.message.reply("🗓🔍 <b>Выберите какой тип транспорта вам необходимо узнать.</b>",
-                                       parse_mode='HTML', reply_markup=keyboard)
+                                      reply_markup=keyboard)
 
 
 @dp.callback_query(lambda c: c.data == "routes")
@@ -436,7 +427,7 @@ async def handle_routes(callback_query: types.CallbackQuery, state: FSMContext):
             inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="find_route"),
                               InlineKeyboardButton(text="🏙 | Города", callback_data="find_route_city")]])
     await callback_query.message.reply(
-        "🧭🔍 <b>Выберите какой тип маршрут следования вам необходимо установить.</b>", parse_mode='HTML',
+        "🧭🔍 <b>Выберите какой тип маршрут следования вам необходимо установить.</b>",
         reply_markup=keyboard)
 
 
@@ -538,7 +529,7 @@ async def clear_route(callback_query: types.CallbackQuery):
                           InlineKeyboardButton(text="🏙 | Города", callback_data="clear_route_city")]])
     await bot.send_message(callback_query.message.chat.id,
                            "🛤🚮 <b>Выберете тип маршрута следования, которые вы хотите желаете очистить.</b>",
-                           parse_mode='HTML', reply_markup=keyboard)
+                          reply_markup=keyboard)
 
 
 @dp.callback_query(lambda c: c.data in ["clear_route_station", "clear_route_city"])
@@ -550,7 +541,7 @@ async def clear_route_selection(callback_query: types.CallbackQuery, state: FSMC
         await state.update_data(from_city=None, to_city=None, from_city_title=None, to_city_title=None)
         response_message = "🚂🚮 <b>Маршруты следования городов были успешно очищены. Для того, чтобы установить новый маршрут следования воспользуйтесь командой /route.</b>"
     await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
-    await bot.send_message(callback_query.message.chat.id, response_message, parse_mode='HTML')
+    await bot.send_message(callback_query.message.chat.id, response_message)
 
 
 # Inversion routes
@@ -561,7 +552,7 @@ async def inversion_route(callback_query: types.CallbackQuery):
                           InlineKeyboardButton(text="🏙 | Города", callback_data="inversion_route_city")]])
     await bot.send_message(callback_query.message.chat.id,
                            "📅🔁 <b>Выберете какой тип маршрут следования вам необходимо поменять местами.</b>",
-                           parse_mode='HTML', reply_markup=keyboard)
+                          reply_markup=keyboard)
 
 
 @dp.callback_query(lambda c: c.data in ["inversion_route_station", "inversion_route_city"])
@@ -591,7 +582,7 @@ async def inversion_route_selection(callback_query: types.CallbackQuery, state: 
                 [InlineKeyboardButton(text=f"{emoji} | Расписание {message_prefix}", callback_data=callback_data)]])
         await bot.send_message(callback_query.message.chat.id,
                                f"{emoji}🔁 <b>Была совершена инверсия маршрута следования для {message_prefix}. {to_title} является отправной точкой и {from_title} является конечной точкой.</b>",
-                               parse_mode='HTML', reply_markup=keyboard)
+                              reply_markup=keyboard)
         await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
         await state.update_data(
             **{f'from_{("station" if callback_data == "send_suburban" else "city")}': to_location,
@@ -603,7 +594,7 @@ async def inversion_route_selection(callback_query: types.CallbackQuery, state: 
         await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
         await bot.send_message(callback_query.message.chat.id,
                                f"❌🔁 <b>Маршрут следования не был установлен для {message_prefix}. Пожалуйста, установите маршрут перед инверсией маршрута.</b>",
-                               parse_mode='HTML')
+                              )
 
 
 # Debug
@@ -616,11 +607,11 @@ async def feedback_command(event, state: FSMContext):
         if isinstance(event, Message):
             await event.answer(
                 "ℹ✉ <b>У вас уже есть одно открытое обращение. Пожалуйста, дождитесь ответа. Если вам уже ответили на обращение, то отметьте его прочитанным, перед тем, как написать следующее.</b>",
-                parse_mode='HTML')
+               )
         elif isinstance(event, CallbackQuery):
             await event.message.answer(
                 "ℹ✉ <b>У вас уже есть одно открытое обращение. Пожалуйста, дождитесь ответа. Если вам уже ответили на обращение, то отметьте его прочитанным, перед тем, как написать следующее.</b>",
-                parse_mode='HTML')
+               )
         return
 
     keyboard = InlineKeyboardMarkup(
@@ -633,13 +624,13 @@ async def feedback_command(event, state: FSMContext):
             "📨 <b>Пожалуйста, напишите ваше сообщение, которое будет передано создателю бота. \n\n</b>"
             "В своем сообщении вы можете рассказать об пожеланиях, обнаруженных ошибках и багах, оставить отзыв по поводу использования бота. "
             "Убедительная просьба, не писать в обратную связь всякий не связанный бред, имейте уважение.",
-            parse_mode='HTML', reply_markup=keyboard)
+           reply_markup=keyboard)
     elif isinstance(event, CallbackQuery):
         feedback_message = await event.message.answer(
             "📨 <b>Пожалуйста, напишите ваше сообщение, которое будет передано создателю бота. \n\n</b>"
             "В своем сообщении вы можете рассказать об пожеланиях, обнаруженных ошибках и багах, оставить отзыв по поводу использования бота. "
             "Убедительная просьба, не писать в обратную связь всякий не связанный бред, имейте уважение.",
-            parse_mode='HTML', reply_markup=keyboard)
+           reply_markup=keyboard)
 
     await state.update_data(feedback_message_id=feedback_message.message_id, feedback_chat_id=feedback_message.chat.id)
     await state.set_state(FeedbackStates.awaiting_feedback)
@@ -664,11 +655,11 @@ async def handle_feedback(message: Message, state: FSMContext):
         ]
     )
 
-    await bot.send_message(chat_id=admin_id, text=feedback_message, parse_mode='HTML', reply_markup=keyboard)
+    await bot.send_message(chat_id=admin_id, text=feedback_message, reply_markup=keyboard)
     await bot.edit_message_text("📧 <b>Спасибо за обратную связь! В течении времени вам ответит создатель бота.</b>",
                                 chat_id=feedback_chat_id,
                                 message_id=feedback_message_id,
-                                parse_mode='HTML')
+                               )
     await state.update_data(feedback_in_progress=True)
     await state.set_state()
 
@@ -679,8 +670,7 @@ async def ask_reply_text(callback_query: CallbackQuery, state: FSMContext):
         return
     user_id = int(callback_query.data.split("_")[1])
     reply_prompt_message = await bot.send_message(chat_id=admin_id,
-                                                  text="📝 <b>Пожалуйста, введите текст ответа пользователю:</b>",
-                                                  parse_mode='HTML')
+                                                  text="📝 <b>Пожалуйста, введите текст ответа пользователю:</b>")
     await state.update_data(reply_user_id=user_id, reply_prompt_message_id=reply_prompt_message.message_id)
     await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
     await state.set_state(FeedbackStates.awaiting_reply_text)
@@ -688,7 +678,7 @@ async def ask_reply_text(callback_query: CallbackQuery, state: FSMContext):
 
 @dp.callback_query(lambda c: c.data == 'cancel_feedback')
 async def cancel_feedback_reply_text(callback_query: CallbackQuery, state: FSMContext):
-    await callback_query.message.edit_text("❌📧 <b>Вы отменили обратную связь с создателем бота.</b>", parse_mode='HTML')
+    await callback_query.message.edit_text("❌📧 <b>Вы отменили обратную связь с создателем бота.</b>")
     await state.update_data(feedback_in_progress=False)
     await state.set_state()
 
@@ -715,14 +705,12 @@ async def send_reply(message: Message, state: FSMContext):
 
     try:
         await bot.send_message(chat_id=user_id,
-                               text=f"📩 <b>Вам поступило сообщение от создателя бота в ответ на ваше обращение:</b>\n\n{reply_text}",
-                               parse_mode='HTML', reply_markup=keyboard)
+                               text=f"📩 <b>Вам поступило сообщение от создателя бота в ответ на ваше обращение:</b>\n\n{reply_text}", reply_markup=keyboard)
         await bot.edit_message_text("📧 <b>Сообщение было успешно отправлено пользователю.</b>",
                                     chat_id=admin_id,
-                                    message_id=reply_prompt_message_id,
-                                    parse_mode='HTML')
+                                    message_id=reply_prompt_message_id)
     except Exception as e:
-        await message.answer(f"❌ <b>Не удалось отправить сообщение пользователю. Ошибка:</b> {e}", parse_mode='HTML')
+        await message.answer(f"❌ <b>Не удалось отправить сообщение пользователю. Ошибка:</b> {e}")
     await state.set_state()
 
 
@@ -734,12 +722,10 @@ async def send_log_file(message: Message, state: FSMContext):
         log_file_path = 'YandexRaspBot-error.log'
         if os.path.exists(log_file_path):
             await message.answer_document(FSInputFile(log_file_path),
-                                          caption="✅⚙ <b>Файл логов был найден, отправляю его вам! Чтобы снова вызвать и получить логи, также воспользуйтесь командой /log.</b>",
-                                          parse_mode='HTML')
+                                          caption="✅⚙ <b>Файл логов был найден, отправляю его вам! Чтобы снова вызвать и получить логи, также воспользуйтесь командой /log.</b>")
         else:
             await message.answer(
-                "❌⚙ <b>Файл логов не был найден. Скорее всего его не существует в текущей директории сервера.</b>",
-                parse_mode='HTML')
+                "❌⚙ <b>Файл логов не был найден. Скорее всего его не существует в текущей директории сервера.</b>")
     else:
         await state.update_data(debug_menu=False)
 
@@ -764,8 +750,7 @@ async def send_requests_url(message: Message, state: FSMContext):
         await message.answer("✅🔗 <b>Вот ссылки API запросов для тестирования в Postman.\n\n</b>"
                              f"🚆 <b>API запрос пригородных поездов с выбранными вами станциями: {suburban_url}\n\n</b>"
                              f"🚂 <b>API запрос поездов дальнего следования с выбранными вами городами: {train_url}\n\n</b>"
-                             "<b>Для просмотра информации из данных API, требуется зайти на https://www.postman.com/ и вставить туда ссылку либо открыть ссылку в браузере.</b>",
-                             parse_mode='HTML')
+                             "<b>Для просмотра информации из данных API, требуется зайти на https://www.postman.com/ и вставить туда ссылку либо открыть ссылку в браузере.</b>")
     else:
         await state.update_data(debug_menu=False)
 
