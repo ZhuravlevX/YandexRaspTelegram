@@ -6,6 +6,7 @@ import random
 
 from aiogram.exceptions import TelegramAPIError
 from aiogram.fsm.state import StatesGroup, State
+from discord.ui import button
 from pytz import timezone
 from datetime import datetime
 
@@ -248,28 +249,34 @@ async def send_underground(message: Message, state: FSMContext):
     from_station_underground = data.get('from_station_underground')
     to_station_underground = data.get('to_station_underground')
     user_id = message.chat.id
+    tz = data.get('timezone', 'Europe/Moscow')
 
-    if auto_update_users.get(user_id, False):
-        await message.reply("🚇↔ <b>Путь с автообновлением на данный момент активно. "
-                            "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>")
-        return
+    if tz == 'Europe/Moscow':
+        if auto_update_users.get(user_id, False):
+            await message.reply("🚇↔ <b>Путь с автообновлением на данный момент активно. "
+                                "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>")
+            return
 
-    if not from_station_underground or not to_station_underground:
-        await message.reply("🚇 <b>Маршрут следования не был установлен. "
-                            "Пожалуйста, установите маршрут перед построением пути следования до конечной станции.</b>")
-        return
+        if not from_station_underground or not to_station_underground:
+            await message.reply("🚇 <b>Маршрут следования не был установлен. "
+                                "Пожалуйста, установите маршрут перед построением пути следования до конечной станции.</b>")
+            return
+        else:
+            initial_message = await message.reply("🚇↔ <b>Строим маршрут следования к конечной станции...</b>")
+            await update_underground(initial_message, user_id, state)
+            await asyncio.sleep(10)
+
+            try:
+                await initial_message.edit_text("🚇🚫 <b>Не удалось получить информацию об маршруте следования. "
+                                                "Попробуйте снова позже или проверьте правильность введенных станций. В случае многократного раза, обращайтесь в /feedback.</b>")
+                auto_update_users[user_id] = False
+            except Exception as e:
+                pass
+        await state.set_state()
     else:
-        initial_message = await message.reply("🚇↔ <b>Строим маршрут следования к конечной станции...</b>")
-        await update_underground(initial_message, user_id, state)
-        await asyncio.sleep(10)
-
-        try:
-            await initial_message.edit_text("🚇🚫 <b>Не удалось получить информацию об маршруте следования. "
-                                            "Попробуйте снова позже или проверьте правильность введенных станций. В случае многократного раза, обращайтесь в /feedback.</b>")
-            auto_update_users[user_id] = False
-        except Exception as e:
-            pass
-    await state.set_state()
+        await message.reply("🚇️ℹ <b>Данная команда доступна жителям города «Москва». "
+                            "Если вы являетесь жителем данного города и у вас нету доступа к этой команде, установите в настройках часовой пояс — Москва – UTC+3.</b>")
+        return
 
 @dp.callback_query(lambda c: c.data == "send_underground")
 async def handle_send_underground(callback_query: types.CallbackQuery, state: FSMContext):
@@ -523,78 +530,113 @@ async def set_timezone(callback_query: types.CallbackQuery, state: FSMContext):
 
 # Clear routes
 @dp.callback_query(lambda c: c.data == "clear_route")
-async def clear_route(callback_query: types.CallbackQuery):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="clear_route_station"),
-                          InlineKeyboardButton(text="🏙 | Города", callback_data="clear_route_city")]])
+async def clear_route(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    tz = data.get('timezone', 'Europe/Moscow')
+
+    if tz == 'Europe/Moscow':
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="clear_route_station"),
+                              InlineKeyboardButton(text="🏙 | Города", callback_data="clear_route_city")],
+                             [InlineKeyboardButton(text="🚇 | Московский метрополитен", callback_data="clear_route_underground")]])
+    else:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="clear_route_station"),
+                              InlineKeyboardButton(text="🏙 | Города", callback_data="clear_route_city")]])
+
     await bot.send_message(callback_query.message.chat.id,
                            "🛤🚮 <b>Выберете тип маршрута следования, которые вы хотите желаете очистить.</b>",
                           reply_markup=keyboard)
 
 
-@dp.callback_query(lambda c: c.data in ["clear_route_station", "clear_route_city"])
+@dp.callback_query(lambda c: c.data in ["clear_route_station", "clear_route_city", "clear_route_underground"])
 async def clear_route_selection(callback_query: types.CallbackQuery, state: FSMContext):
     if callback_query.data == "clear_route_station":
-        await state.update_data(from_station=None, to_station=None, from_station_title=None, to_station_title=None)
+        await state.update_data(from_station=None, to_station=None)
         response_message = "🚆🚮 <b>Маршруты следования станций были успешно очищены. Для того, чтобы установить новый маршрут следования воспользуйтесь командой /route.</b>"
-    else:
-        await state.update_data(from_city=None, to_city=None, from_city_title=None, to_city_title=None)
+    elif callback_query.data == "clear_route_underground":
+        await state.update_data(from_station_underground=None, to_station_underground=None)
+        response_message = "🚇🚮 <b>Маршруты следования станций московского метрополитена были успешно очищены. Для того, чтобы установить новый маршрут следования воспользуйтесь командой /route.</b>"
+    elif callback_query.data == "clear_route_city":
+        await state.update_data(from_city=None, to_city=None)
         response_message = "🚂🚮 <b>Маршруты следования городов были успешно очищены. Для того, чтобы установить новый маршрут следования воспользуйтесь командой /route.</b>"
-    await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
-    await bot.send_message(callback_query.message.chat.id, response_message)
+    await bot.edit_message_text(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id, text=response_message)
 
 
 # Inversion routes
 @dp.callback_query(lambda c: c.data == "inversion_route")
-async def inversion_route(callback_query: types.CallbackQuery):
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="inversion_route_station"),
-                          InlineKeyboardButton(text="🏙 | Города", callback_data="inversion_route_city")]])
+async def inversion_route(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    tz = data.get('timezone', 'Europe/Moscow')
+
+    if tz == 'Europe/Moscow':
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🏫 | Станции", callback_data="inversion_route_station"),
+                              InlineKeyboardButton(text="🏙 | Города", callback_data="inversion_route_city")],
+                             [InlineKeyboardButton(text="🚇 | Московский метрополитен",
+                                                   callback_data="inversion_route_underground")]])
+    else:
+        keyboard = InlineKeyboardMarkup(
+        inline_keyboard = [[InlineKeyboardButton(text="🏫 | Станции", callback_data="inversion_route_station"),
+                            InlineKeyboardButton(text="🏙 | Города", callback_data="inversion_route_city")]])
+
     await bot.send_message(callback_query.message.chat.id,
                            "📅🔁 <b>Выберете какой тип маршрут следования вам необходимо поменять местами.</b>",
                           reply_markup=keyboard)
 
 
-@dp.callback_query(lambda c: c.data in ["inversion_route_station", "inversion_route_city"])
+@dp.callback_query(lambda c: c.data in ["inversion_route_station", "inversion_route_city", "inversion_route_underground"])
 async def inversion_route_selection(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
 
     if callback_query.data == "inversion_route_station":
         from_location = data.get('from_station')
         to_location = data.get('to_station')
-        from_title = data.get('from_station_title')
-        to_title = data.get('to_station_title')
         callback_data = "send_suburban"
         message_prefix = "пригородных поездов"
+        button_message = "Расписание " + message_prefix
+        button_emoji = "🗓"
         emoji = "🚆"
-    else:
+        state_fields = ("station", "station")
+    elif callback_query.data == "inversion_route_city":
         from_location = data.get('from_city')
         to_location = data.get('to_city')
-        from_title = data.get('from_city_title')
-        to_title = data.get('to_city_title')
         callback_data = "send_train"
         message_prefix = "поездов дальнего следования"
+        button_message = "Расписание " + message_prefix
+        button_emoji = "🗓"
         emoji = "🚂"
+        state_fields = ("city", "city")
+    elif callback_query.data == "inversion_route_underground":
+        from_location = data.get('from_station_underground')
+        to_location = data.get('to_station_underground')
+        callback_data = "send_underground"
+        message_prefix = "московского метрополитена"
+        button_message = "Построить путь"
+        button_emoji = "↕"
+        emoji = "🚇"
+        state_fields = ("station_underground", "station_underground")
 
     if from_location and to_location:
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text=f"{emoji} | Расписание {message_prefix}", callback_data=callback_data)]])
-        await bot.send_message(callback_query.message.chat.id,
-                               f"{emoji}🔁 <b>Была совершена инверсия маршрута следования для {message_prefix}. {to_title} является отправной точкой и {from_title} является конечной точкой.</b>",
-                              reply_markup=keyboard)
-        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
-        await state.update_data(
-            **{f'from_{("station" if callback_data == "send_suburban" else "city")}': to_location,
-               f'to_{("station" if callback_data == "send_suburban" else "city")}': from_location,
-               f'from_{("station_title" if callback_data == "send_suburban" else "city_title")}': to_title,
-               f'to_{("station_title" if callback_data == "send_suburban" else "city_title")}': from_title}
+                [InlineKeyboardButton(text=f"{button_emoji} | {button_message}", callback_data=callback_data)]])
+        await bot.edit_message_text(
+            chat_id=callback_query.message.chat.id,
+            message_id=callback_query.message.message_id,
+            text=f"{emoji}🔁 <b>Была совершена инверсия маршрута следования для {message_prefix}. Бывшая конечная точка маршрута, стала начальной, а начальная точка — конечной.</b>",
+            reply_markup=keyboard
         )
+        await state.update_data(**{
+            f'from_{state_fields[0]}': to_location,
+            f'to_{state_fields[1]}': from_location
+        })
     else:
-        await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
-        await bot.send_message(callback_query.message.chat.id,
-                               f"❌🔁 <b>Маршрут следования не был установлен для {message_prefix}. Пожалуйста, установите маршрут перед инверсией маршрута.</b>",
-                              )
+        await bot.edit_message_text(
+            chat_id=callback_query.message.chat.id,
+            message_id=callback_query.message.message_id,
+            text=f"❌🔁 <b>Маршрут следования не был установлен для {message_prefix}. Пожалуйста, установите маршрут перед инверсией маршрута.</b>"
+        )
 
 
 # Debug
