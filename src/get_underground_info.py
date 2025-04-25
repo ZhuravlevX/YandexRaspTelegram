@@ -30,7 +30,7 @@ def build_part(part: Part, last):
 
         if minutes == 0:
             duration_time = f'{int(seconds)} сек.'
-        elif seconds == 0:
+        elif seconds == 0 or duration == 0:
             duration_time = "Прибывает"
         else:
             duration_time = f'{int(minutes)} мин. {int(seconds)} сек.'
@@ -46,7 +46,10 @@ def build_part(part: Part, last):
             'mediumHigh': load.count('mediumHigh'),
             'High': load.count('High')
         }
-        most_common_load = max(load_counts, key=load_counts.get)
+
+        priority = ['low', 'medium', 'mediumHigh', 'High']
+
+        most_common_load = max(load_counts, key=lambda x: (load_counts[x], priority.index(x)))
 
         if most_common_load == 'low':
             msg += 'Вагоны свободны (🟢)\n'
