@@ -1,5 +1,5 @@
-use crate::types::{AppState, notifications::NotificationsResponse, schema::SchemaResponse};
-use actix_web::rt::time::sleep;
+use crate::types::{notifications::NotificationsResponse, schema::SchemaResponse, AppState};
+use actix_web::rt::time::{interval, sleep};
 use log::{error, info, warn};
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
@@ -8,30 +8,29 @@ use std::time::Duration;
 static TIMEOUT: Duration = Duration::from_secs(30);
 static UPDATE_TIMEOUT: Duration = Duration::from_secs(3600);
 
-pub async fn update_data(state: Arc<AppState>, api_url: String) {
+pub async fn updater(state: Arc<AppState>, api_url: String) {
     let client = awc::Client::new();
 
+    let mut interval = interval(UPDATE_TIMEOUT);
     loop {
-        // update schema
-        let schema: SchemaResponse = fetch_data(
-            format!("{api_url}/schema/v1.0"),
-            &client,
-        )
-        .await;
-        *state.schema.write() = Some(schema.data);
-        info!("Schema successfully updated");
-
-        // update notifications
-        let notifications: NotificationsResponse = fetch_data(
-            format!("{api_url}/notifications/v2"),
-            &client,
-        )
-        .await;
-        *state.notifications.write() = Some(notifications.data);
-        info!("Notifications successfully updated");
-
-        sleep(UPDATE_TIMEOUT).await;
+        interval.tick().await;
+        update_data(&state, &api_url, &client).await;
     }
+}
+
+async fn update_data(state: &Arc<AppState>, api_url: &String, client: &awc::Client) {
+    // update schema
+    let schema: SchemaResponse = fetch_data(format!("{api_url}/schema/v1.0"), &client).await;
+    *state.schema.write() = Some(schema.data);
+    info!("Schema successfully updated");
+
+    // update notifications
+    let notifications: NotificationsResponse =
+        fetch_data(format!("{api_url}/notifications/v2"), &client).await;
+    *state.notifications.write() = Some(notifications.data);
+    info!("Notifications successfully updated");
+
+    sleep(UPDATE_TIMEOUT).await;
 }
 
 async fn fetch_data<T: DeserializeOwned>(url: String, client: &awc::Client) -> T {
