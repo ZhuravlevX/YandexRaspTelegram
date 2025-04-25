@@ -1,29 +1,14 @@
 use crate::types::notifications::Notification;
+use crate::types::router::RouterResponse;
 use crate::types::schema::Schema;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub mod schema;
 pub mod notifications;
 pub mod router;
-
-#[derive(Clone)]
-pub struct AppState {
-    pub schema: Arc<RwLock<Option<Schema>>>,
-    pub notifications: Arc<RwLock<Option<Vec<Notification>>>>,
-    pub env: Environment,
-}
-
-impl AppState {
-    pub fn new(environment: Environment) -> Self {
-        Self {
-            schema: Arc::new(RwLock::new(None)),
-            notifications: Arc::new(RwLock::new(None)),
-            env: environment,
-        }
-    }
-}
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -32,6 +17,25 @@ pub struct StationMini {
     pub name: String,
     pub line_id: usize,
     pub line_name: String,
+}
+
+#[derive(Clone)]
+pub struct AppState {
+    pub schema: Arc<RwLock<Option<Schema>>>,
+    pub notifications: Arc<RwLock<Option<Vec<Notification>>>>,
+    pub route_cache: Arc<RwLock<HashMap<String, RouterResponse>>>,
+    pub env: Environment,
+}
+
+impl AppState {
+    pub fn new(environment: Environment) -> Self {
+        Self {
+            schema: Arc::new(RwLock::new(None)),
+            notifications: Arc::new(RwLock::new(None)),
+            route_cache: Arc::new(RwLock::new(HashMap::new())),
+            env: environment,
+        }
+    }
 }
 
 #[derive(Deserialize, Clone)]

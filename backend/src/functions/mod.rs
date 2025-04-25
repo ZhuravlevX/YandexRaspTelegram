@@ -5,6 +5,7 @@ use crate::types::StationMini;
 pub mod getters;
 pub mod updater;
 pub mod route_time;
+pub mod cache_cleaner;
 
 pub fn convert_in_station_mini(station: &Station, schema: &Schema) -> StationMini {
     StationMini {

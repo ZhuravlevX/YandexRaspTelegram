@@ -1,4 +1,5 @@
-use crate::functions::updater::update_data;
+use crate::functions::cache_cleaner::cache_cleaner;
+use crate::functions::updater::updater;
 use crate::routes::configure_routes;
 use crate::types::{AppState, Environment};
 use actix_cors::Cors;
@@ -24,7 +25,8 @@ async fn main() -> std::io::Result<()> {
 
     // init app state
     let app_state = Arc::new(AppState::new(env.clone()));
-    rt::spawn(update_data(app_state.clone(), env.mosmetro_api_url.clone())); // spawn data updater thread
+    rt::spawn(updater(app_state.clone(), env.mosmetro_api_url.clone())); // spawn data updater thread
+    rt::spawn(cache_cleaner(app_state.clone()));
 
     HttpServer::new(move || {
         App::new()

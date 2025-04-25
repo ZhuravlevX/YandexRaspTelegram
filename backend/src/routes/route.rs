@@ -32,29 +32,43 @@ pub async fn get_route(
     client: web::Data<awc::Client>,
     state: web::Data<AppState>,
 ) -> error::Result<impl Responder> {
-    let mut router_res = client
-        .post(&state.env.router_api_url)
-        .insert_header((
-            "User-Agent",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
-        ))
-        .send_json(&RouterRequest {
-            from: query.from,
-            to: query.to,
-        })
-        .await
-        .map_err(|_| error::ErrorBadGateway("Error sending route request"))?;
+    let key = format!("{}-{}", query.from, query.to);
 
-    if !router_res.status().is_success() {
-        return Err(error::ErrorNotFound("Route not found"));
-    }
-
-    let schema_read = state.schema.read();
-    let Some(schema) = schema_read.as_ref() else {
-        return Err(error::ErrorServiceUnavailable("Schema not loaded yet"));
+    let cached_res = {
+        let cache = state.route_cache.read();
+        cache.get(&key).cloned()
     };
 
-    let router_res = router_res.json::<RouterResponse>().await.unwrap();
+    let router_res = match cached_res {
+        Some(route_cache) => route_cache,
+        None => {
+            let mut res = client
+                .post(&state.env.router_api_url)
+                .insert_header((
+                    "User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
+                ))
+                .send_json(&RouterRequest {
+                    from: query.from,
+                    to: query.to,
+                })
+                .await
+                .map_err(|_| error::ErrorBadGateway("Error sending route request"))?;
+
+            if !res.status().is_success() {
+                return Err(error::ErrorNotFound("Route not found"));
+            }
+
+            let router_res = res.json::<RouterResponse>().await.unwrap();
+            state.route_cache.write().insert(key, router_res.clone());
+            router_res
+        }
+    };
+
+    let schema_read = state.schema.read();
+    let schema = schema_read
+        .as_ref()
+        .ok_or(error::ErrorServiceUnavailable("Schema not loaded yet"))?;
 
     let nodes: Vec<StationMini> = router_res.data[0]
         .nodes
