@@ -8,12 +8,13 @@ from aiogram.fsm.state import StatesGroup, State
 from pytz import timezone
 from datetime import datetime
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.mongo import MongoStorage
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message, CallbackQuery
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message, CallbackQuery, \
+    LabeledPrice, PreCheckoutQuery
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.types.input_file import FSInputFile
@@ -65,7 +66,8 @@ async def send_welcome(message: Message, state: FSMContext):
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="📨 | Обратная связь", callback_data="feedback")],
                          [InlineKeyboardButton(text="↕ | Поиск по маршруту следования",
-                                               callback_data="schedule_route")]])
+                                               callback_data="schedule_route")],
+                         [InlineKeyboardButton(text="⭐ | Поддержать разработчика", callback_data="support_developer")]])
 
     random_image = random.choice(suburban_urls)
     await message.answer_photo(photo=random_image,
@@ -458,6 +460,51 @@ async def cancel_update(callback_query: types.CallbackQuery):
                                         reply_markup=None)
 
 
+# Supports
+@dp.callback_query(lambda c: c.data == "support_developer")
+async def handle_support_callback(callback_query: types.CallbackQuery):
+    await bot.send_message(chat_id=callback_query.message.chat.id,
+                           text='<b>⭐ℹ Если вы хотите, чтобы разработчику было приятно, вы можете поддержать его Telegram Stars! '
+                                'Заранее благодарим тех, кто решился нас поддержать! Для того, чтобы поддержать автора, пропишите команду: '
+                                '<i>/support "ЧИСЛО ОТ 1 ДО 5000"</i></b>')
+
+
+@dp.message(Command('support'))
+async def handle_support_message(message: types.Message):
+    parts = message.text.strip().split()
+    if len(parts) != 2 or not parts[1].isdigit():
+        await message.answer(
+            '<b>⭐ℹ Пожалуйста, укажите сумму поддержки в звёздах: <i>/support "ЧИСЛО ОТ 1 ДО 5000"</i></b>')
+        return
+    amount = int(parts[1])
+    if not (1 <= amount <= 5000):
+        await message.answer("<b>⭐❌ Сумма должна быть от 1 до 5000 звёзд.</b>")
+        return
+
+    prices = [LabeledPrice(label="XTR", amount=amount)]
+    await bot.send_invoice(
+        chat_id=message.chat.id,
+        title="Поддержать разработчика",
+        description="Подтверждая данную покупку, вы соглашаетесь с тем, что готовы пожертвовать разработчикам указанную вами сумму.",
+        currency="XTR",
+        prices=prices,
+        payload="support_developer",
+    )
+
+
+@dp.pre_checkout_query()
+async def pre_checkout_handler(pre_checkout_query: PreCheckoutQuery):
+    await pre_checkout_query.answer(ok=True)
+
+
+@dp.message(F.successful_payment)
+async def process_successful_payment(message: types.Message):
+    await bot.send_message(chat_id=message.chat.id,
+                           text='<b>⭐❤ Спасибо вам, что вы поддержали разработчика! Этим действием вы даете понять, что вы цените чужой труд!</b>',
+                           message_effect_id="5159385139981059251")
+    logging.info(f"Telegram Stars successful payment: {message.successful_payment.telegram_payment_charge_id}")
+
+
 # Settings
 @dp.callback_query(lambda c: c.data == "enable_auto_update")
 async def handle_enable_auto_update(callback_query: types.CallbackQuery, state: FSMContext):
@@ -775,6 +822,28 @@ async def send_log_file(message: Message, state: FSMContext):
         else:
             await message.answer(
                 "❌⚙ <b>Файл логов не был найден. Скорее всего его не существует в текущей директории сервера.</b>")
+    else:
+        await state.update_data(debug_menu=False)
+
+
+@dp.message(Command('refund'))
+async def command_refund_handler(message: types.Message, state: FSMContext):
+    parts = message.text.strip().split()
+    data = await state.get_data()
+    debug_menu = data.get('debug_menu')
+    if debug_menu:
+        if len(parts) < 2:
+            await message.answer("<b>ℹ Пожалуйста, укажите ID транзакции.</b>")
+            return
+
+        transaction_id = parts[1]
+        try:
+            await bot.refund_star_payment(
+                user_id=message.from_user.id,
+                telegram_payment_charge_id=transaction_id)
+            logging.info(f"Telegram Stars refund request completed: {transaction_id}")
+        except Exception as e:
+            logging.info(f"Error when returning Telegram Stars: {e}")
     else:
         await state.update_data(debug_menu=False)
 
