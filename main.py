@@ -460,36 +460,63 @@ async def cancel_update(callback_query: types.CallbackQuery):
                                         reply_markup=None)
 
 
-# Supports
 @dp.callback_query(lambda c: c.data == "support_developer")
 async def handle_support_callback(callback_query: types.CallbackQuery):
-    await bot.send_message(chat_id=callback_query.message.chat.id,
-                           text='<b>⭐ℹ Если вы хотите, чтобы разработчику было приятно, вы можете поддержать его Telegram Stars! '
-                                'Заранее благодарим тех, кто решился нас поддержать! Для того, чтобы поддержать автора, пропишите команду: '
-                                '<i>/support "ЧИСЛО ОТ 1 ДО 5000"</i></b>')
+    sent_message = await bot.send_message(
+        chat_id=callback_query.message.chat.id,
+        text=(
+            '<b>⭐ℹ Если вы хотите, чтобы разработчику было приятно, вы можете поддержать его Telegram Stars! '
+            'Заранее благодарим тех, кто решился нас поддержать! Для того, чтобы поддержать автора, пропишите команду: '
+            '<i>/support "ЧИСЛО ОТ 1 ДО 5000"</i></b>'
+        ),
+    )
+    await asyncio.sleep(15)
+    await bot.delete_message(chat_id=sent_message.chat.id, message_id=sent_message.message_id)
 
 
 @dp.message(Command('support'))
 async def handle_support_message(message: types.Message):
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     parts = message.text.strip().split()
     if len(parts) != 2 or not parts[1].isdigit():
-        await message.answer(
+        msg = await message.answer(
             '<b>⭐ℹ Пожалуйста, укажите сумму поддержки в звёздах: <i>/support "ЧИСЛО ОТ 1 ДО 5000"</i></b>')
+        await asyncio.sleep(15)
+        try:
+            await msg.delete()
+        except Exception:
+            pass
         return
+
     amount = int(parts[1])
     if not (1 <= amount <= 5000):
-        await message.answer("<b>⭐❌ Сумма должна быть от 1 до 5000 звёзд.</b>")
+        msg = await message.answer("<b>⭐❌ Сумма должна быть от 1 до 5000 звёзд.</b>")
+        await asyncio.sleep(180)
+        try:
+            await msg.delete()
+        except Exception:
+            pass
         return
 
     prices = [LabeledPrice(label="XTR", amount=amount)]
-    await bot.send_invoice(
+    bot_msg = await bot.send_invoice(
         chat_id=message.chat.id,
         title="Поддержать разработчика",
-        description="Подтверждая данную покупку, вы соглашаетесь с тем, что готовы пожертвовать разработчикам указанную вами сумму.",
+        description="Подтверждая данную покупку, вы соглашаетесь с тем, что готовы пожертвовать разработчикам указанную вами сумму. "
+                    "Оплатите поддержку в течении 3 минут, иначе сообщение с оплатой будет удалено.",
         currency="XTR",
         prices=prices,
         payload="support_developer",
     )
+    await asyncio.sleep(180)
+    try:
+        await bot.delete_message(chat_id=message.chat.id, message_id=bot_msg.message_id)
+    except Exception:
+        pass
 
 
 @dp.pre_checkout_query()
