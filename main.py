@@ -54,18 +54,14 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 auto_update_users = {}
 
 
-# @dp.error(ExceptionTypeFilter(TelegramAPIError))
-# async def handle_my_custom_exception(event: ErrorEvent):
-#     pass
-
-
 @dp.message(CommandStart())
 async def send_welcome(message: Message, state: FSMContext):
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="🧭 | Установить маршрут", callback_data="routes"),
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="📨 | Обратная связь", callback_data="feedback")],
-                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования", callback_data="schedule_route")],
+                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования",
+                                               callback_data="schedule_route")],
                          [InlineKeyboardButton(text="⭐ | Поддержать разработчика", callback_data="support_developer")]])
 
     random_image = random.choice(suburban_urls)
@@ -77,6 +73,11 @@ async def send_welcome(message: Message, state: FSMContext):
                                        "Также для корректно работы бота, НЕОБХОДИМО выбрать свой часовой пояс, чтобы расписание отображалось корректно вашем регионе. Это можно сделать в настройках бота.",
                                reply_markup=keyboard)
     await state.set_state()
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
 
 # Suburbans
@@ -166,9 +167,19 @@ async def send_suburbans(message: Message, state: FSMContext):
                             "Пожалуйста, установите маршрут перед поиском расписания следования пригородных поездов.</b>")
         return
     else:
+
         initial_message = await message.reply("🚆🗓 <b>Получаем расписание пригородных поездов...</b>")
+        try:
+            await message.delete()
+        except Exception:
+            pass
         await update_suburbans(initial_message, user_id, state)
     await state.set_state()
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
 
 # Undergrounds
@@ -268,6 +279,10 @@ async def send_underground(message: Message, state: FSMContext):
             return
         else:
             initial_message = await message.reply("🚇↔ <b>Строим маршрут следования к конечной станции...</b>")
+            try:
+                await message.delete()
+            except Exception:
+                pass
             await update_underground(initial_message, user_id, state)
             await asyncio.sleep(10)
 
@@ -282,6 +297,11 @@ async def send_underground(message: Message, state: FSMContext):
         await message.reply("🚇️ℹ <b>Данная команда доступна жителям города «Москва». "
                             "Если вы являетесь жителем данного города и у вас нету доступа к этой команде, установите в настройках часовой пояс — Москва – UTC+3.</b>")
         return
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
 
 @dp.callback_query(lambda c: c.data == "send_underground")
@@ -347,8 +367,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
         else:
             await message.edit_text(
                 "🚂🚫 <b>К сожалению, по вашему маршруту следования мы не нашли расписание. "
-                "Пожалуйста, укажите действительный маршрут следования поезда дальнего следования.</b>",
-            )
+                "Пожалуйста, укажите действительный маршрут следования поезда дальнего следования.</b>")
             auto_update_users[user_id] = False
             return
 
@@ -372,10 +391,18 @@ async def send_trains(message: Message, state: FSMContext):
                             )
         return
     else:
-        initial_message = await message.reply("🚂🗓 <b>Получаем расписание поездов дальнего следования...</b>",
-                                              )
+        initial_message = await message.reply("🚂🗓 <b>Получаем расписание поездов дальнего следования...</b>")
+        try:
+            await message.delete()
+        except Exception:
+            pass
         await update_trains(initial_message, user_id, state)
     await state.set_state()
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
 
 @dp.callback_query(lambda c: c.data == "send_train")
@@ -403,6 +430,11 @@ async def send_routes(message: Message, state: FSMContext):
     await message.reply("🧭🔍 <b>Выберите, какой тип маршрута следования вам необходимо установить.</b>",
                         reply_markup=keyboard)
     await state.set_state()
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
 
 @dp.callback_query(lambda c: c.data == "schedule_route")
@@ -613,7 +645,8 @@ async def handle_back(callback_query: types.CallbackQuery):
         inline_keyboard=[[InlineKeyboardButton(text="🧭 | Установить маршрут", callback_data="routes"),
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="📨 | Обратная связь", callback_data="feedback")],
-                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования", callback_data="schedule_route")],
+                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования",
+                                               callback_data="schedule_route")],
                          [InlineKeyboardButton(text="⭐ | Поддержать разработчика", callback_data="support_developer")]])
     await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
                                         message_id=callback_query.message.message_id,
@@ -791,6 +824,11 @@ async def feedback_command(event, state: FSMContext):
 
     await state.update_data(feedback_message_id=feedback_message.message_id, feedback_chat_id=feedback_message.chat.id)
     await state.set_state(FeedbackStates.awaiting_feedback)
+
+    try:
+        await event.delete()
+    except Exception:
+        pass
 
 
 @dp.message(FeedbackStates.awaiting_feedback)
