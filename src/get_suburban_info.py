@@ -20,7 +20,7 @@ token_bot = os.getenv('TOKEN_BOT')
 config = load_config()
 
 
-def get_suburban_info(from_station: str, to_station: str, tz: str) -> str | None:
+def get_suburban_info(from_station: str, to_station: str, tz: str, express: bool) -> str | None:
     tz_str = pytz.timezone(str(tz))
     date = datetime.now(tz_str).strftime('%Y-%m-%d')
 
@@ -51,6 +51,10 @@ def get_suburban_info(from_station: str, to_station: str, tz: str) -> str | None
 
             if timezone_now.timestamp() > suburban.departure.timestamp():
                 continue
+
+            if express:
+                if not suburban.thread.express_type == "express":
+                    continue
 
             transport_subtype = suburban.thread.transport_subtype.title
             carrier = suburban.thread.carrier.title

@@ -65,8 +65,7 @@ async def send_welcome(message: Message, state: FSMContext):
         inline_keyboard=[[InlineKeyboardButton(text="🧭 | Установить маршрут", callback_data="routes"),
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="📨 | Обратная связь", callback_data="feedback")],
-                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования",
-                                               callback_data="schedule_route")],
+                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования", callback_data="schedule_route")],
                          [InlineKeyboardButton(text="⭐ | Поддержать разработчика", callback_data="support_developer")]])
 
     random_image = random.choice(suburban_urls)
@@ -89,11 +88,13 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
     from_station = data.get('from_station')
     to_station = data.get('to_station')
 
+    express_type = data.get('express_type', False)
+
     auto_update_users[user_id] = True
 
     for i in range(60):
         current_time = datetime.now(tz).strftime('%H:%M')
-        train_info = get_suburban_info(from_station, to_station, str(tz))
+        train_info = get_suburban_info(from_station, to_station, str(tz), express_type)
         suburban_image_selector = ImageSelector(suburban_urls)
         random_image = suburban_image_selector.get_random_image()
 
@@ -540,6 +541,9 @@ async def handle_enable_auto_update(callback_query: types.CallbackQuery, state: 
     new_status = not enable_auto_update
     await state.update_data(enable_auto_update=new_status)
 
+    express_type = data.get('express_type', False)
+    express_text = "🚅 | Только экспрессы" if express_type else "🚆 | Обычные и экспрессы"
+
     emoji = "✅" if new_status else "❌"
     settings_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -547,6 +551,7 @@ async def handle_enable_auto_update(callback_query: types.CallbackQuery, state: 
              InlineKeyboardButton(text="🚮 | Очистка маршрутов", callback_data="clear_route")],
             [InlineKeyboardButton(text="🔁 | Инверсия маршрута", callback_data="inversion_route")],
             [InlineKeyboardButton(text="🕒 | Часовой пояс", callback_data="select_timezone")],
+            [InlineKeyboardButton(text=express_text, callback_data="toggle_express_type")],
             [InlineKeyboardButton(text="⬅ | Назад", callback_data="back")]
         ])
     await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
@@ -558,18 +563,48 @@ async def handle_enable_auto_update(callback_query: types.CallbackQuery, state: 
 async def handle_settings(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     enable_auto_update = data.get('enable_auto_update', False)
+    express_type = data.get('express_type', False)
     emoji = "✅" if enable_auto_update else "❌"
+    express_text = "🚅 | Только экспрессы" if express_type else "🚆 | Обычные и экспрессы"
     settings_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=f"{emoji} | Автообновление", callback_data="enable_auto_update"),
              InlineKeyboardButton(text="🚮 | Очистка маршрутов", callback_data="clear_route")],
             [InlineKeyboardButton(text="🔁 | Инверсия маршрута", callback_data="inversion_route")],
             [InlineKeyboardButton(text="🕒 | Часовой пояс", callback_data="select_timezone")],
+            [InlineKeyboardButton(text=express_text, callback_data="toggle_express_type")],
             [InlineKeyboardButton(text="⬅ | Назад", callback_data="back")]
         ])
     await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
                                         message_id=callback_query.message.message_id,
                                         reply_markup=settings_keyboard)
+
+
+@dp.callback_query(lambda c: c.data == "toggle_express_type")
+async def handle_toggle_express_type(callback_query: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    express_type = data.get('express_type', False)
+    new_express_type = not express_type
+    await state.update_data(express_type=new_express_type)
+
+    enable_auto_update = data.get('enable_auto_update', False)
+    emoji = "✅" if enable_auto_update else "❌"
+    express_text = "🚅 | Только экспрессы" if new_express_type else "🚆 | Обычные и экспрессы"
+
+    settings_keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=f"{emoji} | Автообновление", callback_data="enable_auto_update"),
+             InlineKeyboardButton(text="🚮 | Очистка маршрутов", callback_data="clear_route")],
+            [InlineKeyboardButton(text="🔁 | Инверсия маршрута", callback_data="inversion_route")],
+            [InlineKeyboardButton(text="🕒 | Часовой пояс", callback_data="select_timezone")],
+            [InlineKeyboardButton(text=express_text, callback_data="toggle_express_type")],
+            [InlineKeyboardButton(text="⬅ | Назад", callback_data="back")]
+        ])
+    await bot.edit_message_reply_markup(
+        chat_id=callback_query.message.chat.id,
+        message_id=callback_query.message.message_id,
+        reply_markup=settings_keyboard
+    )
 
 
 @dp.callback_query(lambda c: c.data == "back")
@@ -578,8 +613,8 @@ async def handle_back(callback_query: types.CallbackQuery):
         inline_keyboard=[[InlineKeyboardButton(text="🧭 | Установить маршрут", callback_data="routes"),
                           InlineKeyboardButton(text="⚙ | Настройки", callback_data="settings")],
                          [InlineKeyboardButton(text="📨 | Обратная связь", callback_data="feedback")],
-                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования",
-                                               callback_data="schedule_route")]])
+                         [InlineKeyboardButton(text="↕ | Поиск по маршруту следования", callback_data="schedule_route")],
+                         [InlineKeyboardButton(text="⭐ | Поддержать разработчика", callback_data="support_developer")]])
     await bot.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
                                         message_id=callback_query.message.message_id,
                                         reply_markup=keyboard)
