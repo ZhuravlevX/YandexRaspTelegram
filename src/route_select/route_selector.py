@@ -155,6 +155,7 @@ async def to_station_handler(message: Message, state: FSMContext):
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
     from_station = data.get('from_station')
+    express_type = data.get('express_type', False)
 
     messages = data.get('messages', [])
     messages.append({'chat_id': message.chat.id, 'message_id': message.message_id})
@@ -167,7 +168,7 @@ async def to_station_handler(message: Message, state: FSMContext):
         await state.update_data(messages=messages)
     elif len(stations) == 1:
         await state.update_data(to_station=stations[0].code)
-        suburban_info_check = get_suburban_info(from_station, stations[0].code, str(tz))
+        suburban_info_check = get_suburban_info(from_station, stations[0].code, str(tz), express_type)
         if suburban_info_check:
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
@@ -201,6 +202,7 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
     from_station = data.get('from_station')
+    express_type = data.get('express_type', False)
 
     stations_list = data['stations']
     station = stations_list[callback_data.code]
@@ -215,7 +217,7 @@ async def select_station_handler(callback: CallbackQuery, callback_data: SelectS
         await state.update_data(from_station=callback_data.code)
     elif callback_data.direction == 'to':
         await state.update_data(to_station=callback_data.code)
-        suburban_info_check = get_suburban_info(from_station, callback_data.code, str(tz))
+        suburban_info_check = get_suburban_info(from_station, callback_data.code, str(tz), express_type)
         if suburban_info_check:
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
