@@ -23,7 +23,7 @@ def find_city() -> dict[str, dict[str, str]]:
     city = {}
 
     for country in search_city.countries:
-        if not (country.title == 'Беларусь' or country.title == 'Россия'):
+        if country.title not in ['Беларусь', 'Россия', 'Северная Корея', 'Казахстан', 'Китай', 'Монголия']:
             continue
         for region in country.regions:
             for settlement in region.settlements:
@@ -36,6 +36,7 @@ def find_city() -> dict[str, dict[str, str]]:
 
                 city[title] = {
                     "region": settlement.title,
+                    "country": country.title,
                     "code": code,
                 }
     return city
