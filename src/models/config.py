@@ -9,3 +9,4 @@ class Config(BaseModel):
     numbers_trains_maps_emojis: dict[str, str]
     numbers_trains_maps_title: dict[str, str]
     russian_timezones: dict[str, str]
+    country_flags: dict[str, str]
