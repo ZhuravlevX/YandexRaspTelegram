@@ -19,6 +19,9 @@ from src.get_suburban_info import get_suburban_info
 from src.get_train_info import get_train_info
 from src.models.search_response_underground import SearchResponse, StationMini
 from src.utils.delete_previous_messages import delete_previous_messages
+from src.utils.load_config import load_config
+
+config = load_config()
 
 station_emojis = {
     "train_station": "🏫",
@@ -90,12 +93,14 @@ async def select_stations_keyboard(stations: list[Station],
 async def select_cities_keyboard(cities: list[City],
                                  direction: Literal['from', 'to'], state: FSMContext) -> InlineKeyboardMarkup:
     cities_list = {}
+    flag_list = {}
     builder = InlineKeyboardBuilder()
     for index, city in enumerate(cities[:15]):
-        cities_list[city.code] = f'«{city.region}»'
-        builder.button(text=f'🏙 | «{city.region}»',
+        cities_list[city.code] = f'«{city.region}» ({city.country})'
+        flag_list[city.code] =  f'{config.country_flags.get(city.country, "🏳")}'
+        builder.button(text=f'{config.country_flags.get(city.country, "🏳")}🏙 | «{city.region}» ({city.country})',
                        callback_data=SelectCityCallback(direction=direction, code=city.code))
-    await state.update_data(cities=cities_list)
+    await state.update_data(cities=cities_list, flags=flag_list)
     builder.adjust(1, repeat=True)
     return builder.as_markup()
 
@@ -256,7 +261,7 @@ async def from_city_handler(message: Message, state: FSMContext):
         await state.update_data(messages=messages)
     elif len(cities) == 1:
         response = await message.reply(
-            f'🏙🔍 <b>Найден город «{cities[0].region}». Введите название города КУДА вы едете.</b>')
+            f'{config.country_flags.get(cities[0].country, "🏳")}🏙🔍 <b>Найден город «{cities[0].region}» ({cities[0].country}). Введите название города КУДА вы едете.</b>')
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
         await state.update_data(from_city=cities[0].code)
@@ -297,7 +302,7 @@ async def to_city_handler(message: Message, state: FSMContext):
             )
 
             response = await message.reply(
-                f'🏙🔍 <b>Найден город «{cities[0].region}». Маршрут следования для расписания поездов дальнего следования был установлен.</b>',
+                f'{config.country_flags.get(cities[0].country, "🏳")}🏙🔍 <b>Найден город «{cities[0].region}» ({cities[0].country}). Маршрут следования для расписания поездов дальнего следования был установлен.</b>',
                 reply_markup=keyboard
             )
             messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
@@ -324,12 +329,14 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
 
     cities_list = data['cities']
+    flag_list = data['flags']
     city = cities_list[callback_data.code]
+    flag = flag_list[callback_data.code]
     messages = data.get('messages', [])
 
     if callback_data.direction == 'from':
         response = await callback.message.edit_text(
-            f'🏙🔍 <b>Выбран город {city}. Введите название города КУДА вы едете.</b>')
+            f'{flag}🏙🔍 <b>Выбран город {city}. Введите название города КУДА вы едете.</b>')
         messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
         await state.update_data(messages=messages)
         await state.set_state(RouteSelectState.to_city_search)
@@ -345,7 +352,7 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
             )
 
             response = await callback.message.edit_text(
-                f'🏙🔍 <b>Найден город {city}. Маршрут следования для расписания поездов дальнего следования был установлен.</b>',
+                f'{flag}🏙🔍 <b>Найден город {city}. Маршрут следования для расписания поездов дальнего следования был установлен.</b>',
                 reply_markup=keyboard
             )
             messages.append({'chat_id': response.chat.id, 'message_id': response.message_id})
