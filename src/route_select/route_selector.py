@@ -29,24 +29,6 @@ station_emojis = {
     "airport": "🛫"
 }
 
-line_emojis = {
-    "Сокольническая линия": "🔴",
-    "Замоскворецкая линия": "🟢",
-    "Арбатско-Покровская линия": "🔵",
-    "Филёвская линия": "🩵",
-    "Кольцевая линия": "🟤",
-    "Калужско-Рижская линия": "🟠",
-    "Таганско-Краснопресненская линия": "🟣",
-    "Калининская линия": "🟡",
-    "Серпуховско-Тимирязевская линия": "🤍",
-    "Люблинско-Дмитровская линия": "🥒",
-    "Бутовская линия": "🏵",
-    "Солнцевская линия": "☀",
-    "Некрасовская линия": "🌺",
-    "Троицкая линия": "🍀",
-    "Большая кольцевая линия": "🔄"
-}
-
 route_selector = Router()
 token_yandex = os.getenv('TOKEN_YANDEX')
 
@@ -371,7 +353,7 @@ async def select_underground_keyboard(stations: list[StationMini],
     builder = InlineKeyboardBuilder()
     for station in stations:
         builder.button(
-            text=f'{line_emojis.get(station.lineName, "🚈")} | «{station.name}» ({station.lineName})',
+            text=f'{config.line_emojis.get(station.lineName, "🚈")} | «{station.name}» ({station.lineName})',
             callback_data=SelectUndergroundCallback(direction=direction, id=station.id)
         )
     builder.adjust(1, repeat=True)
