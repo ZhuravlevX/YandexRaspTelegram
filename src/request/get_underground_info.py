@@ -1,12 +1,15 @@
+import os
 from typing import List
 import requests
 
 from src.models.search_response_underground import RouterResponse, Part, StationMini, Wagons, Train
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def get_train(station_id, next_station_id) -> Train | None:
     try:
-        res = requests.get(f'http://127.0.0.1:8080/wagons/{station_id}')
+        res = requests.get(f'{os.getenv("BACKEND_URL")}/wagons/{station_id}')
         if res.ok:
             wagons = Wagons(**res.json()).data
             for w in wagons.values():
@@ -103,7 +106,7 @@ def build_route_message(route: RouterResponse):
 
 
 def get_underground_info(from_station_underground: str, to_station_underground: str):
-    res = requests.get(f'http://127.0.0.1:8080/route?from={from_station_underground}&to={to_station_underground}')
+    res = requests.get(f'{os.getenv("BACKEND_URL")}/route?from={from_station_underground}&to={to_station_underground}')
 
     if not res.ok:
         return

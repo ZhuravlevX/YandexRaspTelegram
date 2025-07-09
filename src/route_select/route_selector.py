@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKe
 from typing import Literal
 from pytz import timezone
 import requests
+from dotenv import load_dotenv
 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -20,6 +21,8 @@ from src.request.get_train_info import get_train_info
 from src.models.search_response_underground import SearchResponse, StationMini
 from src.utils.delete_previous_messages import delete_previous_messages
 from src.utils.load_config import load_config
+
+load_dotenv()
 
 config = load_config()
 
@@ -80,12 +83,13 @@ async def select_cities_keyboard(cities: list[City],
     builder = InlineKeyboardBuilder()
     for index, city in enumerate(cities[:15]):
         cities_list[city.code] = f'«{city.region}» ({city.country})'
-        flag_list[city.code] =  f'{config.country_flags.get(city.country, "🏳")}'
+        flag_list[city.code] = f'{config.country_flags.get(city.country, "🏳")}'
         builder.button(text=f'{config.country_flags.get(city.country, "🏳")}🏙 | «{city.region}» ({city.country})',
                        callback_data=SelectCityCallback(direction=direction, code=city.code))
     await state.update_data(cities=cities_list, flags=flag_list)
     builder.adjust(1, repeat=True)
     return builder.as_markup()
+
 
 async def select_underground_keyboard(stations: list[StationMini],
                                       direction: Literal['from', 'to']) -> InlineKeyboardMarkup:
@@ -361,7 +365,7 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
 
 
 async def select_underground(station_id, direction, message: Message, state: FSMContext):
-    station = StationMini(**requests.get(f'http://127.0.0.1:8080/station/mini/{station_id}').json())
+    station = StationMini(**requests.get(f'{os.getenv("BACKEND_URL")}/station/mini/{station_id}').json())
     data = await state.get_data()
 
     if direction == "to" and station_id == data.get("from_station_underground"):
@@ -422,7 +426,7 @@ async def handle_select_underground(callback: CallbackQuery, callback_data: Sele
         )
         return
 
-    station = StationMini(**requests.get(f'http://127.0.0.1:8080/station/mini/{station_id}').json())
+    station = StationMini(**requests.get(f'{os.getenv("BACKEND_URL")}/station/mini/{station_id}').json())
 
     await state.update_data({f'{direction}_station_underground': station_id})
 
@@ -460,7 +464,7 @@ async def find_route_underground(c: CallbackQuery, state: FSMContext):
 
 @route_selector.message(RouteSelectState.from_station_underground)
 async def select_from_underground(message: Message, state: FSMContext):
-    search_res = requests.get(f'http://127.0.0.1:8080/station/search?q={message.text}')
+    search_res = requests.get(f'{os.getenv("BACKEND_URL")}/station/search?q={message.text}')
     data = await state.get_data()
 
     messages = data.get('messages', [])
@@ -491,7 +495,7 @@ async def select_from_underground(message: Message, state: FSMContext):
 
 @route_selector.message(RouteSelectState.to_station_underground)
 async def select_to_underground(message: Message, state: FSMContext):
-    search_res = requests.get(f'http://127.0.0.1:8080/station/search?q={message.text}')
+    search_res = requests.get(f'{os.getenv("BACKEND_URL")}/station/search?q={message.text}')
     data = await state.get_data()
 
     messages = data.get("messages", [])
