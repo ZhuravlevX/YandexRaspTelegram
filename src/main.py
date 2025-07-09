@@ -915,7 +915,7 @@ async def send_log_file(message: Message, state: FSMContext):
     data = await state.get_data()
     debug_menu = data.get('debug_menu')
     if debug_menu:
-        log_file_path = 'YandexRaspBot-error.log'
+        log_file_path = '../YandexRaspBot-error.log'
         if os.path.exists(log_file_path):
             await message.answer_document(FSInputFile(log_file_path),
                                           caption="✅⚙ <b>Файл логов был найден, отправляю его вам! Чтобы снова вызвать и получить логи, также воспользуйтесь командой /log.</b>")
