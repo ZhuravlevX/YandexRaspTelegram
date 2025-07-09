@@ -88,13 +88,13 @@ def get_suburban_info(from_station: str, to_station: str, tz: str, express: bool
             elif hours == 0:
                 time_until_arrival_str = f'{minutes} мин.'
             else:
-                time_until_arrival_str = f'{hours} час {minutes} мин.'
+                time_until_arrival_str = f'{hours} час. {minutes} мин.'
 
             this_suburban_info = f'{emoji} <b>{suburban.thread.number} | {suburban.thread.title}</b>\n' \
                                  f'<i>Отправляется с {departure_platform} в {suburban.departure.hour}:{suburban.departure.minute:02d}</i>\n' \
                                  f'<i>С остановками: {suburban.stops}</i>\n' \
                                  f'<i>Стоимость билета: {ticket_price}</i>\n' \
-                                 f'<i>Время в пути составит: {duration_time}</i>\n' \
+                                 f'<i>Время в пути составит: {duration_time} ({suburban.arrival.hour}:{suburban.arrival.minute:02d})</i>\n' \
                                  f'<i>{transport_subtype} | {suburban.thread.carrier.title}</i>\n' \
                                  f'<b>Время до прибытия: {time_until_arrival_str}</b>\n'
 
