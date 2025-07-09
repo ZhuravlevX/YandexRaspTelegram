@@ -53,7 +53,7 @@ pub async fn get_route(
                     to: query.to,
                 })
                 .await
-                .map_err(|_| error::ErrorBadGateway("Error sending route request"))?;
+                .map_err(|_| error::ErrorGatewayTimeout("Error sending route request"))?;
 
             if !res.status().is_success() {
                 return Err(error::ErrorNotFound("Route not found"));

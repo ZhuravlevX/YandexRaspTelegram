@@ -18,7 +18,7 @@ pub async fn get_wagons(
         ))
         .send()
         .await
-        .map_err(error::ErrorInternalServerError)?;
+        .map_err(error::ErrorGatewayTimeout)?;
 
     Ok(HttpResponse::build(res.status())
         .insert_header(("Content-Type", "application/json"))
