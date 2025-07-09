@@ -1,7 +1,7 @@
 # Dockerfile for Rust API
 
 # Use official Rust image as builder
-FROM rust:1.70 as builder
+FROM rust:1.88 AS builder
 
 # Create a new empty shell project
 RUN USER=root cargo new --bin backend
@@ -10,10 +10,6 @@ WORKDIR /backend
 # Copy manifests
 COPY ./Cargo.toml ./Cargo.toml
 
-# Build dependencies only (caching)
-RUN cargo build --release
-RUN rm src/*.rs
-
 # Copy source files
 COPY ./src ./src
 
@@ -21,7 +17,7 @@ COPY ./src ./src
 RUN cargo build --release
 
 # Final stage using a slim image
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Install runtime dependencies if needed
 RUN apt-get update && apt-get install -y \
