@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  railways-timetable-telegram-bot:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: railways-timetable-telegram-bot
+    restart: unless-stopped
+    env_file:
+      - .env  # Load all variables from .env file
+    depends_on:
+      - railways-timetable-backend
+
+  railways-timetable-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: railways-timetable-backend
+    restart: unless-stopped
+    env_file:
+      - .env  # Load all variables from .env file
+    ports:
+      - "8080:8080"  # Use the PORT variable from .env
