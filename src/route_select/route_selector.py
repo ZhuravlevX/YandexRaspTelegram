@@ -55,6 +55,7 @@ class SelectCityCallback(CallbackData, prefix="select_city"):
 class SelectUndergroundCallback(CallbackData, prefix="select_underground"):
     direction: Literal['from', 'to']
     id: int
+    lines: str
 
 
 async def select_stations_keyboard(stations: list[Station],
@@ -83,6 +84,17 @@ async def select_cities_keyboard(cities: list[City],
         builder.button(text=f'{config.country_flags.get(city.country, "🏳")}🏙 | «{city.region}» ({city.country})',
                        callback_data=SelectCityCallback(direction=direction, code=city.code))
     await state.update_data(cities=cities_list, flags=flag_list)
+    builder.adjust(1, repeat=True)
+    return builder.as_markup()
+
+async def select_underground_keyboard(stations: list[StationMini],
+                                      direction: Literal['from', 'to']) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for station in stations:
+        builder.button(
+            text=f'{config.line_emojis.get(station.lineName, "🚈")} | «{station.name}» ({station.lineName})',
+            callback_data=SelectUndergroundCallback(direction=direction, id=station.id, lines=station.lineName)
+        )
     builder.adjust(1, repeat=True)
     return builder.as_markup()
 
@@ -348,18 +360,6 @@ async def select_city_handler(callback: CallbackQuery, callback_data: SelectCity
             await state.update_data(messages=messages)
 
 
-async def select_underground_keyboard(stations: list[StationMini],
-                                      direction: Literal['from', 'to']) -> InlineKeyboardMarkup:
-    builder = InlineKeyboardBuilder()
-    for station in stations:
-        builder.button(
-            text=f'{config.line_emojis.get(station.lineName, "🚈")} | «{station.name}» ({station.lineName})',
-            callback_data=SelectUndergroundCallback(direction=direction, id=station.id)
-        )
-    builder.adjust(1, repeat=True)
-    return builder.as_markup()
-
-
 async def select_underground(station_id, direction, message: Message, state: FSMContext):
     station = StationMini(**requests.get(f'http://127.0.0.1:8080/station/mini/{station_id}').json())
     data = await state.get_data()
@@ -385,12 +385,12 @@ async def select_underground(station_id, direction, message: Message, state: FSM
     if direction == 'from':
         response = await message.bot.send_message(
             message.chat.id,
-            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Введите название станции КУДА вы отправляетесь.</b>'
+            f'{config.line_emojis.get(station.lineName, "🚈")}🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Введите название станции КУДА вы отправляетесь.</b>'
         )
     else:
         response = await message.bot.send_message(
             message.chat.id,
-            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
+            f'{config.line_emojis.get(station.lineName, "🚈")}🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
             reply_markup=keyboard
         )
         messages = data.get("messages", [])
@@ -436,12 +436,12 @@ async def handle_select_underground(callback: CallbackQuery, callback_data: Sele
     )
     if direction == 'from':
         await callback.message.edit_text(
-            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Введите название станции КУДА вы отправляетесь.</b>',
+            f'{config.line_emojis.get(station.lineName, "🚈")}🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Введите название станции КУДА вы отправляетесь.</b>',
             parse_mode="HTML"
         )
     else:
         response = await callback.message.edit_text(
-            f'🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
+            f'{config.line_emojis.get(station.lineName, "🚈")}🚇🔍 <b>Выбрана станция «{station.name}» ({station.lineName}). Маршрут следования для построения пути установлен.</b>',
             reply_markup=keyboard
         )
         messages = data.get("messages", [])
