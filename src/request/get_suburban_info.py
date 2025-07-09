@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from src.utils.load_config import load_config
 from src.models.search_response import SearchResponse
-from src.get_weather_info import get_weather_code
+from src.request.get_weather_info import get_weather_code
 from src.utils.format_transport_subtype import format_transport_subtype
 
 load_dotenv()

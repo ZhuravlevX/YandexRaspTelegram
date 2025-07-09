@@ -15,8 +15,8 @@ from src.models.stations import Station
 from src.models.cities import City
 from src.route_select.find_station import find_station
 from src.route_select.find_city import find_city
-from src.get_suburban_info import get_suburban_info
-from src.get_train_info import get_train_info
+from src.request.get_suburban_info import get_suburban_info
+from src.request.get_train_info import get_train_info
 from src.models.search_response_underground import SearchResponse, StationMini
 from src.utils.delete_previous_messages import delete_previous_messages
 from src.utils.load_config import load_config
