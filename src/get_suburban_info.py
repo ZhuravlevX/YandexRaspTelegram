@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from src.utils.load_config import load_config
 from src.models.search_response import SearchResponse
 from src.get_weather_info import get_weather_code
+from src.utils.format_transport_subtype import format_transport_subtype
 
 load_dotenv()
 
@@ -56,7 +57,7 @@ def get_suburban_info(from_station: str, to_station: str, tz: str, express: bool
                 if not suburban.thread.express_type == "express":
                     continue
 
-            transport_subtype = suburban.thread.transport_subtype.title
+            transport_subtype = format_transport_subtype(suburban.thread.transport_subtype.title)
             carrier = suburban.thread.carrier.title
 
             if suburban.thread.number == "МЦК":
@@ -94,7 +95,7 @@ def get_suburban_info(from_station: str, to_station: str, tz: str, express: bool
                                  f'<i>С остановками: {suburban.stops}</i>\n' \
                                  f'<i>Стоимость билета: {ticket_price}</i>\n' \
                                  f'<i>Время в пути составит: {duration_time}</i>\n' \
-                                 f'<i>{transport_subtype.capitalize()} | {suburban.thread.carrier.title}</i>\n' \
+                                 f'<i>{transport_subtype} | {suburban.thread.carrier.title}</i>\n' \
                                  f'<b>Время до прибытия: {time_until_arrival_str}</b>\n'
 
             if len(msg + this_suburban_info) > 900:
