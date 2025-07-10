@@ -11,4 +11,3 @@ class Config(BaseModel):
     russian_timezones: dict[str, str]
     country_flags: dict[str, str]
     line_emojis: dict[str, str]
-

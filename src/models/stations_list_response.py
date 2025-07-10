@@ -2,8 +2,10 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
+
 class StationsListResponse(BaseModel):
     countries: List[Country]
+
 
 class Codes(BaseModel):
     yandex_code: Optional[str] = None
@@ -30,8 +32,8 @@ class Region(BaseModel):
     codes: Dict[str, Any]
     title: str
 
+
 class Country(BaseModel):
     regions: List[Region]
     codes: Codes
     title: str
-

@@ -19,6 +19,7 @@ weather_emoji = {
     "mist": "🌫"
 }
 
+
 def get_weather_code(station_code):
     weather = find_station_code(station_code)
     owm = OWM(os.getenv('TOKEN_OWM'))
@@ -29,6 +30,7 @@ def get_weather_code(station_code):
     status = weather.detailed_status
     emoji = weather_emoji.get(status.lower(), "🌡")
     return f"{temp}°C {emoji}"
+
 
 def get_weather_title(city_name):
     owm = OWM(os.getenv('TOKEN_OWM'))

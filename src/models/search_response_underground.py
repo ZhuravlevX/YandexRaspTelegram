@@ -9,10 +9,12 @@ class StationMini(BaseModel):
     lineId: int
     lineName: str
 
+
 class SearchResponse(BaseModel):
     success: bool
     count: int
     stations: List[StationMini]
+
 
 class Part(BaseModel):
     nodes: List[StationMini]
@@ -24,6 +26,7 @@ class RouterResponse(BaseModel):
     parts: List[Part]
     duration: int
 
+
 class Train(BaseModel):
     id: str
     way: str
@@ -33,7 +36,7 @@ class Train(BaseModel):
     trainIndex: int
     wagons: dict[int, str]
 
+
 class Wagons(BaseModel):
     success: bool
     data: dict[str, List[Train]]
-
