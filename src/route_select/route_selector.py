@@ -58,7 +58,6 @@ class SelectCityCallback(CallbackData, prefix="select_city"):
 class SelectUndergroundCallback(CallbackData, prefix="select_underground"):
     direction: Literal['from', 'to']
     id: int
-    lines: str
 
 
 async def select_stations_keyboard(stations: list[Station],
