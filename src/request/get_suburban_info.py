@@ -12,12 +12,6 @@ from src.models.search_response import SearchResponse
 from src.request.get_weather_info import get_weather_code
 from src.utils.format_transport_subtype import format_transport_subtype
 
-load_dotenv()
-
-token_yandex = os.getenv('TOKEN_YANDEX')
-token_owm = os.getenv('TOKEN_OWM')
-token_bot = os.getenv('TOKEN_BOT')
-
 config = load_config()
 
 
@@ -27,7 +21,7 @@ def get_suburban_info(from_station: str, to_station: str, tz: str, express: bool
 
     def search_suburban(date):
         search_request = requests.get(
-            f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&result_timezone={tz}&transport_types=suburban&limit=250"
+            f"{os.getenv('YANDEX_API_URL')}/search?apikey={os.getenv('TOKEN_YANDEX')}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&result_timezone={tz}&transport_types=suburban&limit=250"
         )
 
         if not search_request.ok:

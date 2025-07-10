@@ -3,18 +3,13 @@ import os
 import re
 
 import requests
-from dotenv import load_dotenv
 
 from src.models.stations_list_response import StationsListResponse
-
-load_dotenv()
-token_yandex = os.getenv('TOKEN_YANDEX')
-token_bot = os.getenv('TOKEN_BOT')
 
 
 def find_city() -> dict[str, dict[str, str]]:
     response = requests.get(
-        f'https://api.rasp.yandex.net/v3.0/stations_list/?apikey={token_yandex}&lang=ru_RU&format=json')
+        f'{os.getenv("YANDEX_API_URL")}/stations_list/?apikey={os.getenv('TOKEN_YANDEX')}&lang=ru_RU&format=json')
 
     if response.status_code != 200:
         raise Exception('Failed to get station list')

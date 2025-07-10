@@ -3,9 +3,7 @@ from typing import List
 import requests
 
 from src.models.search_response_underground import RouterResponse, Part, StationMini, Wagons, Train
-from dotenv import load_dotenv
 
-load_dotenv()
 
 def get_train(station_id, next_station_id) -> Train | None:
     try:

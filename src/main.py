@@ -30,9 +30,6 @@ from src.utils.Image_selector import ImageSelector
 load_dotenv()
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
-token_yandex = os.getenv('TOKEN_YANDEX')
-token_bot = os.getenv('TOKEN_BOT')
-
 config = load_config()
 train_urls = config.train_urls
 underground_urls = config.underground_urls
@@ -960,8 +957,8 @@ async def send_requests_url(message: Message, state: FSMContext):
 
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
 
-    suburban_url = f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&result_timezone={tz}&transport_types=suburban&limit=250"
-    train_url = f"https://api.rasp.yandex.net/v3.0/search?apikey={token_yandex}&from={from_city}&to={to_city}&lang=ru_RU&date={date}&result_timezone={tz}&transport_types=train&limit=250"
+    suburban_url = f"{os.getenv('YANDEX_API_URL')}/search?apikey={os.getenv('TOKEN_YANDEX')}&from={from_station}&to={to_station}&lang=ru_RU&date={date}&result_timezone={tz}&transport_types=suburban&limit=250"
+    train_url = f"{os.getenv('YANDEX_API_URL')}/search?apikey={os.getenv('TOKEN_YANDEX')}&from={from_city}&to={to_city}&lang=ru_RU&date={date}&result_timezone={tz}&transport_types=train&limit=250"
 
     debug_menu = data.get('debug_menu')
     if debug_menu:
@@ -974,5 +971,5 @@ async def send_requests_url(message: Message, state: FSMContext):
 
 
 if __name__ == '__main__':
-    bot = Bot(token=token_bot, default=DefaultBotProperties(parse_mode='HTML'))
+    bot = Bot(token=os.getenv('TOKEN_BOT'), default=DefaultBotProperties(parse_mode='HTML'))
     asyncio.run(dp.start_polling(bot))

@@ -8,7 +8,6 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKe
 from typing import Literal
 from pytz import timezone
 import requests
-from dotenv import load_dotenv
 
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -22,8 +21,6 @@ from src.models.search_response_underground import SearchResponse, StationMini
 from src.utils.delete_previous_messages import delete_previous_messages
 from src.utils.load_config import load_config
 
-load_dotenv()
-
 config = load_config()
 
 station_emojis = {
@@ -33,7 +30,6 @@ station_emojis = {
 }
 
 route_selector = Router()
-token_yandex = os.getenv('TOKEN_YANDEX')
 
 
 class RouteSelectState(StatesGroup):
