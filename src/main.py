@@ -784,7 +784,7 @@ async def inversion_route_selection(callback_query: types.CallbackQuery, state: 
         )
 
 
-# Debug
+# Feedback
 @dp.message(Command('feedback'))
 @dp.callback_query(lambda c: c.data == 'feedback')
 async def feedback_command(event, state: FSMContext):
@@ -907,20 +907,21 @@ async def send_reply(message: Message, state: FSMContext):
     await state.set_state()
 
 
-@dp.message(Command('log'))
-async def send_log_file(message: Message, state: FSMContext):
-    data = await state.get_data()
-    debug_menu = data.get('debug_menu')
-    if debug_menu:
-        log_file_path = '../YandexRaspBot-error.log'
-        if os.path.exists(log_file_path):
-            await message.answer_document(FSInputFile(log_file_path),
-                                          caption="✅⚙ <b>Файл логов был найден, отправляю его вам! Чтобы снова вызвать и получить логи, также воспользуйтесь командой /log.</b>")
-        else:
-            await message.answer(
-                "❌⚙ <b>Файл логов не был найден. Скорее всего его не существует в текущей директории сервера.</b>")
-    else:
-        await state.update_data(debug_menu=False)
+# Debug
+# @dp.message(Command('log'))
+# async def send_log_file(message: Message, state: FSMContext):
+#     data = await state.get_data()
+#     debug_menu = data.get('debug_menu')
+#     if debug_menu:
+#         log_file_path = '../YandexRaspBot-error.log'
+#         if os.path.exists(log_file_path):
+#             await message.answer_document(FSInputFile(log_file_path),
+#                                           caption="✅⚙ <b>Файл логов был найден, отправляю его вам! Чтобы снова вызвать и получить логи, также воспользуйтесь командой /log.</b>")
+#         else:
+#             await message.answer(
+#                 "❌⚙ <b>Файл логов не был найден. Скорее всего его не существует в текущей директории сервера.</b>")
+#     else:
+#         await state.update_data(debug_menu=False)
 
 
 @dp.message(Command('refund'))
