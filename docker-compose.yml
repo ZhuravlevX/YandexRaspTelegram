@@ -9,6 +9,8 @@ services:
       - .env  # Load all variables from .env file
     depends_on:
       - railways-timetable-backend
+    environment:
+      - BACKEND_URL=http://railways-timetable-backend:8080
 
   railways-timetable-backend:
     build:
@@ -18,5 +20,5 @@ services:
     restart: unless-stopped
     env_file:
       - .env  # Load all variables from .env file
-    ports:
-      - "8080:8080"
+    environment:
+      - HOST=0.0.0.0
