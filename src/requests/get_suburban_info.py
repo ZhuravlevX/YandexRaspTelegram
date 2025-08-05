@@ -8,7 +8,7 @@ from babel.dates import format_date
 
 from src.utils.load_config import load_config
 from src.models.search_response import SearchResponse
-from src.request.get_weather_info import get_weather_code
+from src.requests.get_weather_info import get_weather_code
 from src.utils.format_transport_subtype import format_transport_subtype
 
 config = load_config()

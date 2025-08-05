@@ -6,7 +6,7 @@ import pytz
 import requests
 from babel.dates import format_date
 
-from src.request.get_weather_info import get_weather_title
+from src.requests.get_weather_info import get_weather_title
 from src.utils.load_config import load_config
 from src.models.search_response_train import SearchResponse
 

@@ -20,9 +20,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.types.input_file import FSInputFile
 from aiogram.client.default import DefaultBotProperties
 
-from src.request.get_suburban_info import get_suburban_info
-from src.request.get_train_info import get_train_info
-from src.request.get_underground_info import get_underground_info
+from src.requests.get_suburban_info import get_suburban_info
+from src.requests.get_train_info import get_train_info
+from src.requests.get_underground_info import get_underground_info
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
 from src.utils.Image_selector import ImageSelector
