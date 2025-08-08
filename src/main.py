@@ -17,11 +17,11 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMedia
     LabeledPrice, PreCheckoutQuery
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
-from aiogram.types.input_file import FSInputFile
 from aiogram.client.default import DefaultBotProperties
 
 from src.requests.get_suburban_info import get_suburban_info
 from src.requests.get_train_info import get_train_info
+from src.requests.get_tramway_info import get_tramway_info
 from src.requests.get_underground_info import get_underground_info
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
@@ -32,6 +32,7 @@ locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 config = load_config()
 train_urls = config.train_urls
+tramway_urls = config.tramway_urls
 underground_urls = config.underground_urls
 suburban_urls = config.suburban_urls
 admin_id = os.getenv('ADMIN_ID')
@@ -178,6 +179,130 @@ async def send_suburbans(message: Message, state: FSMContext):
     except Exception:
         pass
 
+# Tramway
+async def update_tramway(message: Message, user_id: int, state: FSMContext):
+    remaining_time = 3600
+    data = await state.get_data()
+
+    stop_id = data.get('stop_id')
+
+    auto_update_users[user_id] = True
+    last_valid_train_info = None
+
+    for i in range(120):
+        current_time = datetime.now().strftime('%H:%M')
+        tramway_info = get_tramway_info(stop_id)
+        tramway_image_selector = ImageSelector(tramway_urls)
+        random_image = tramway_image_selector.get_random_image()
+
+        if not auto_update_users[user_id]:
+            train_info = last_valid_train_info or tramway_info
+            train_info += f"\n🚊🚫<b> Автообновление было отменено. Последние данные были обновлены в {current_time}.</b>"
+            media = InputMediaPhoto(media=random_image, caption=train_info)
+            await message.edit_media(media)
+            auto_update_users[user_id] = False
+            return
+
+        if not tramway_info:
+            if last_valid_train_info:
+                tramway_info = last_valid_train_info
+            else:
+                if i == 0:
+                    await asyncio.sleep(10)
+                    tramway_info = get_tramway_info(stop_id)
+                    if not tramway_info:
+                        await message.edit_text(
+                            "🚊🔄 <b>Повторная попытка получить информацию об трамваях... Пожалуйста, подождите...</b>",
+                        )
+                        await asyncio.sleep(2)
+                        await update_tramway(message, user_id, state)
+                        return
+                else:
+                    train_info = "🚊🚫 <b>К сожалению не удалось получить информацию об трамваях. Попробуйте позже.</b>"
+        else:
+            last_valid_train_info = tramway_info
+
+        if data.get('enable_auto_update'):
+            if i < 119:
+                remaining_time -= 30
+                minutes, seconds = divmod(remaining_time, 60)
+                duration_time = f'{int(minutes)} мин. {int(seconds)} сек.' if seconds else f'{int(minutes)} мин.'
+
+                additional_text = f"\n🚊⌛ <b>Следующее обновление через каждые 30 секунд. Оставшееся время: {duration_time}</b>"
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🚫 | Отменить автообновление", callback_data="cancel_update")]
+                ])
+            else:
+                additional_text = f"\n🚊⌛ <b>Автообновление завершено в {current_time}. Данные могут быть устаревшими.</b>"
+                auto_update_users[user_id] = False
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                ])
+
+            tramway_info += additional_text
+            media = InputMediaPhoto(media=random_image, caption=tramway_info)
+            await message.edit_media(media, reply_markup=keyboard)
+        else:
+            additional_text = f"\n🚊 <b>Расписание вызвано в {current_time} без автообновления.</b>"
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+            ])
+            tramway_info += additional_text
+            media = InputMediaPhoto(media=random_image, caption=tramway_info)
+            await message.edit_media(media, reply_markup=keyboard)
+            auto_update_users[user_id] = False
+            return
+        await asyncio.sleep(30)
+
+
+@dp.callback_query(lambda c: c.data == "send_tramway")
+async def handle_send_tramway(callback_query: types.CallbackQuery, state: FSMContext):
+    await send_tramway(callback_query.message, state)
+    await callback_query.message.delete()
+
+
+@dp.message(Command('tramway'))
+async def send_tramway(message: Message, state: FSMContext):
+    data = await state.get_data()
+    stop_id = data.get('stop_id')
+    user_id = message.chat.id
+    tz = data.get('timezone', 'Europe/Moscow')
+
+    if tz == 'Europe/Moscow':
+        if auto_update_users.get(user_id, False):
+            await message.reply("🚊🗓 <b>Расписание с автообновление на данный момент активно. "
+                                "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>")
+            return
+
+        if stop_id:
+            await message.reply("🚊 <b>Остановка для трамвая не был установлен. "
+                                "Пожалуйста, установите остановочный пункте перед поиском расписания трамваев.</b>")
+            return
+        else:
+            initial_message = await message.reply("🚊🗓 <b>Получаем расписание трамваев на остановке...</b>")
+            try:
+                await message.delete()
+            except Exception:
+                pass
+            await update_tramway(initial_message, user_id, state)
+            await asyncio.sleep(10)
+
+            try:
+                await initial_message.edit_text("🚊🚫 <b>Не удалось получить информацию об расписании на остановке. "
+                                                "Попробуйте снова позже или проверьте правильность введенного остановки. В случае многократного раза, обращайтесь в /feedback.</b>")
+                auto_update_users[user_id] = False
+            except Exception as e:
+                pass
+        await state.set_state()
+    else:
+        await message.reply("🚊ℹ <b>Данная команда доступна жителям города «Москва». "
+                            "Если вы являетесь жителем данного города и у вас нету доступа к этой команде, установите в настройках часовой пояс — Москва – UTC+3.</b>")
+        return
+
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
 # Undergrounds
 async def update_underground(message: Message, user_id: int, state: FSMContext):
@@ -444,12 +569,15 @@ async def handle_schedule(callback_query: types.CallbackQuery, state: FSMContext
             inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
                               InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")],
                              [InlineKeyboardButton(text="🚇 | Московский метрополитен",
-                                                   callback_data="send_underground")]])
+                                                   callback_data="send_underground"),
+                             InlineKeyboardButton(text="🚊 | Трамваи",
+                                                   callback_data="send_tramway")]
+                             ])
     else:
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
                               InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")]])
-    await callback_query.message.reply("🗓🔍 <b>Выберите какой тип транспорта вам необходимо узнать.</b>",
+    await callback_query.message.reply("🗓🔍 <b>Выберите какой тип транспорта вам необходимо узнать расписание.</b>",
                                        reply_markup=keyboard)
 
 

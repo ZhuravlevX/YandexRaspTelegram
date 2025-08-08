@@ -27,6 +27,16 @@
     'https://transphoto.org/photo/20/84/60/2084609.jpg'
   ],
 
+  // Список ссылок на картинки трамваев московского транспорта для ответов бота
+  tramway_urls: [
+    'https://transphoto.org/photo/17/89/40/1789401.jpg',
+    'https://transphoto.org/photo/20/04/51/2004516.jpg',
+    'https://transphoto.org/photo/19/26/11/1926111.jpg',
+    'https://transphoto.org/photo/17/78/08/1778080.jpg',
+    'https://transphoto.org/photo/17/19/04/1719049.jpg',
+    'https://transphoto.org/photo/17/24/51/1724511.jpg'
+  ],
+
   // Список ссылок на картинки поездов дальнего следования для ответов бота
   train_urls: [
     'https://railgallery.ru/photo/02/69/99/269991.jpg',
