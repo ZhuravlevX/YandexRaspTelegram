@@ -51,7 +51,7 @@ class RoutePathItem(BaseModel):
     sberShuttle: bool
     electrobus: bool
     rateUrl: Any
-    externalForecast: List[ExternalForecastItem]
+    externalForecast: Optional[List[ExternalForecastItem]]
     externalForecastTime: List
     feature: Any
     isFavorite: bool
