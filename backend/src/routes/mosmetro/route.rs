@@ -1,10 +1,10 @@
-use crate::AppState;
-use crate::functions::convert_in_station_mini;
-use crate::functions::getters::find_station_by_id;
-use crate::functions::route_time::calc_route_time;
-use crate::types::StationMini;
-use crate::types::router::{RouterRequest, RouterResponse};
-use actix_web::{HttpResponse, Responder, error, get, web};
+use crate::state::AppState;
+use crate::types::mosmetro::router::{RouterRequest, RouterResponse};
+use crate::types::mosmetro::StationMini;
+use crate::utils::mosmetro::schema::calculate_route_time;
+use crate::utils::mosmetro::schema::convert_in_station_mini;
+use crate::utils::mosmetro::search::find_station_by_id;
+use actix_web::{error, get, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -34,12 +34,14 @@ pub async fn get_route(
 ) -> error::Result<impl Responder> {
     let key = format!("{}-{}", query.from, query.to);
 
-    let cached_res = {
-        let cache = state.route_cache.read();
-        cache.get(&key).cloned()
-    };
+    // let cached_res = {
+    //     let cache = state.route_cache.read();
+    //     cache.get(&key).cloned()
+    // };
 
-    let router_res = match cached_res {
+    let cached_response = state.route_cache.get(&key).await;
+
+    let router_response = match cached_response {
         Some(route_cache) => route_cache,
         None => {
             let mut res = client
@@ -60,7 +62,7 @@ pub async fn get_route(
             }
 
             let router_res = res.json::<RouterResponse>().await.unwrap();
-            state.route_cache.write().insert(key, router_res.clone());
+            state.route_cache.insert(key, router_res.clone()).await;
             router_res
         }
     };
@@ -70,7 +72,7 @@ pub async fn get_route(
         .as_ref()
         .ok_or(error::ErrorServiceUnavailable("Schema not loaded yet"))?;
 
-    let nodes: Vec<StationMini> = router_res.data[0]
+    let nodes: Vec<StationMini> = router_response.data[0]
         .nodes
         .iter()
         .filter_map(|id| {
@@ -94,13 +96,13 @@ pub async fn get_route(
     let mut res = Response {
         success: true,
         parts: Vec::new(),
-        duration: router_res.data[0].time,
+        duration: router_response.data[0].time,
     };
 
     for i in parts.into_iter() {
         res.parts.push(Part {
             nodes: i.clone(),
-            duration: calc_route_time(i.iter().map(|s| s.id).collect(), schema),
+            duration: calculate_route_time(i.iter().map(|s| s.id).collect(), schema),
         })
     }
 

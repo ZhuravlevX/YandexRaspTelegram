@@ -1,6 +1,7 @@
-use crate::functions::convert_in_station_mini;
-use crate::types::schema::Station;
-use crate::types::{AppState, StationMini};
+use crate::state::AppState;
+use crate::types::mosmetro::schema::Station;
+use crate::types::mosmetro::StationMini;
+use crate::utils::mosmetro::schema::convert_in_station_mini;
 use actix_web::{get, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use strsim::jaro_winkler;
@@ -47,14 +48,14 @@ async fn get_search(query: web::Query<Query>, state: web::Data<AppState>) -> imp
                 .chars()
                 .take(query.q.chars().count() + 1)
                 .collect();
-            
+
             match jaro_winkler(query.q.to_lowercase().as_str(), station_name.as_str()) {
                 ..0.85 => None,
                 score @ _ => Some(SearchResult { station, score }),
             }
         })
         .collect();
-    
+
     if result.is_empty() {
         return HttpResponse::NotFound().finish();
     }

@@ -1,4 +1,4 @@
-use crate::types::schema::{Connection, Line, Schema, Station, Transition};
+use crate::types::mosmetro::schema::{Connection, Line, Schema, Station, Transition};
 
 pub fn find_station_by_id(id: usize, schema: &Schema) -> Option<&Station> {
     schema.stations.iter().find(|&s| s.id == id)
@@ -8,6 +8,7 @@ pub fn find_line_by_id(id: usize, schema: &Schema) -> Option<&Line> {
     schema.lines.iter().find(|&l| l.id == id)
 }
 
+#[allow(dead_code)]
 pub fn find_transition_by_station_ids(
     from: usize,
     to: usize,

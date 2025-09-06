@@ -1,16 +1,18 @@
-use crate::functions::cache_cleaner::cache_cleaner;
-use crate::functions::updater::updater;
 use crate::routes::configure_routes;
-use crate::types::{AppState, Environment};
+use crate::types::Environment;
 use actix_cors::Cors;
-use actix_web::{App, HttpServer, middleware::Logger, rt, web};
+use actix_web::{middleware::Logger, rt, web, App, HttpServer};
 use env_logger::Env;
 use log::info;
+use state::AppState;
 use std::sync::Arc;
+use utils::scheduled_tasks::cache_cleaner::cache_cleaner;
+use utils::scheduled_tasks::updater::updater;
 
-mod functions;
 mod routes;
+mod state;
 mod types;
+mod utils;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {

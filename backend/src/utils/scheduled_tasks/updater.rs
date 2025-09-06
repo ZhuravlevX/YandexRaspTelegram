@@ -1,9 +1,11 @@
-use crate::types::{notifications::NotificationsResponse, schema::SchemaResponse, AppState};
+use crate::state::AppState;
 use actix_web::rt::time::{interval, sleep};
 use log::{error, info, warn};
 use serde::de::DeserializeOwned;
 use std::sync::Arc;
 use std::time::Duration;
+use crate::types::mosmetro::notifications::NotificationsResponse;
+use crate::types::mosmetro::schema::SchemaResponse;
 
 static TIMEOUT: Duration = Duration::from_secs(30);
 static UPDATE_TIMEOUT: Duration = Duration::from_secs(3600);

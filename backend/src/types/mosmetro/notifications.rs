@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct NotificationsResponse {
@@ -26,7 +26,6 @@ pub struct Notification {
     pub extra_svg: Option<String>,
     pub url: Option<String>,
 }
-
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -56,4 +55,5 @@ pub struct Description {
 #[serde(rename_all = "UPPERCASE")]
 pub enum Status {
     Emergency,
+    Closed,
 }

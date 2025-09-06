@@ -1,4 +1,4 @@
-use crate::types::AppState;
+use crate::state::AppState;
 use actix_web::{error, get, web, HttpResponse, Responder};
 
 #[get("/wagons/{station_id}")]
