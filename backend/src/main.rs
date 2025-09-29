@@ -6,7 +6,6 @@ use env_logger::Env;
 use log::info;
 use state::AppState;
 use std::sync::Arc;
-use utils::scheduled_tasks::cache_cleaner::cache_cleaner;
 use utils::scheduled_tasks::updater::updater;
 
 mod routes;
@@ -23,12 +22,15 @@ async fn main() -> std::io::Result<()> {
     // init env
     dotenvy::dotenv().ok();
     let env = envy::from_env::<Environment>().expect("Failed to read environment variables");
-    info!("Env loaded");
+    info!("Environment variables successfully loaded!");
 
     // init app state
     let app_state = Arc::new(AppState::new(env.clone()));
     rt::spawn(updater(app_state.clone(), env.mosmetro_api_url.clone())); // spawn data updater thread
-    rt::spawn(cache_cleaner(app_state.clone()));
+
+    // get host and port
+    let host = env.host.clone();
+    let port = env.port.clone();
 
     HttpServer::new(move || {
         App::new()
@@ -37,8 +39,9 @@ async fn main() -> std::io::Result<()> {
             .configure(configure_routes)
             .app_data(web::Data::from(app_state.clone()))
             .app_data(web::Data::new(awc::Client::new()))
+            .app_data(web::Data::new(env.clone()))
     })
-    .bind((env.host, env.port))?
+    .bind((host, port))?
     .workers(4)
     .run()
     .await

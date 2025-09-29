@@ -1,5 +1,6 @@
 mod mosmetro;
 mod mostrans;
+mod status;
 
 use actix_web::web;
 

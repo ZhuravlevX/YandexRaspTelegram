@@ -1,13 +1,15 @@
+use crate::types::Environment;
 use crate::types::mostrans::stop::StopInfoResponse;
-use actix_web::{error, get, web, HttpResponse};
+use actix_web::{HttpResponse, error, get, web};
 
 #[get("/stop_info/{id}")]
 pub async fn get_stop_info(
     id: web::Path<String>,
+    env: web::Data<Environment>,
     client: web::Data<awc::Client>,
 ) -> error::Result<HttpResponse> {
     let mut stop_info_response = client
-        .get(format!("https://api.moscowapp.mos.ru/v8.2/stop_v2/{id}"))
+        .get(format!("{}/stop_v2/{id}", env.moscowapp_api_url))
         .insert_header((
             "User-Agent",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",

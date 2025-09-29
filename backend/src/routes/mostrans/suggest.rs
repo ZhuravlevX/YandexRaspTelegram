@@ -1,7 +1,7 @@
 use crate::state::AppState;
 use crate::types::mostrans::route::RouteDataResponse;
 use crate::types::mostrans::suggest::SuggestResponse;
-use actix_web::{error, get, web, HttpResponse};
+use actix_web::{HttpResponse, error, get, web};
 use url::Url;
 
 #[get("/suggest/{query}")]
@@ -16,7 +16,11 @@ pub async fn get_suggest(
         Some(cached) => cached,
         None => {
             let mut res = client
-                .get(Url::parse(&format!("https://api.moscowapp.mos.ru/v8.2/suggest?query={key}&types=Route")).unwrap().to_string())
+                .get(
+                    Url::parse(&format!("{}/suggest?query={key}&types=Route", state.env.moscowapp_api_url))
+                        .map_err(error::ErrorInternalServerError)?
+                        .to_string()
+                )
                 .insert_header((
                     "User-Agent",
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
@@ -67,22 +71,6 @@ pub async fn get_suggest(
                 .await;
 
             route_data
-
-            // let data = suggest_response.data[0].clone();
-            //
-            // let suggest_data = SuggestData {
-            //     id: data.id,
-            //     description: data.description,
-            //     name: data.name,
-            //     route_number: data.route.number,
-            // };
-            //
-            // state
-            //     .suggest_cache
-            //     .insert(key.clone(), suggest_data.clone())
-            //     .await;
-            //
-            // suggest_data
         }
     };
 
