@@ -104,10 +104,15 @@ def build_route_message(route: RouterResponse):
 
 
 def get_underground_info(from_station_underground: str, to_station_underground: str):
-    res = requests.get(f'{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/route?from={from_station_underground}&to={to_station_underground}')
+    try:
+        res = requests.get(
+            f'{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/route?from={from_station_underground}&to={to_station_underground}'
+        )
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        return None
 
     if not res.ok:
-        return
+        return None
 
     route = RouterResponse(**res.json())
     text = build_route_message(route)
