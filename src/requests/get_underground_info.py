@@ -2,7 +2,7 @@ import os
 from typing import List
 import requests
 
-from src.models.search_response_underground import RouterResponse, Part, StationMini, Wagons, Train
+from src.models.mosmetro.search_response_underground import RouterResponse, Part, StationMini, Wagons, Train
 
 
 def get_train(station_id, next_station_id) -> Train | None:
@@ -104,7 +104,7 @@ def build_route_message(route: RouterResponse):
 
 
 def get_underground_info(from_station_underground: str, to_station_underground: str):
-    res = requests.get(f'{os.getenv("BACKEND_URL")}/route?from={from_station_underground}&to={to_station_underground}')
+    res = requests.get(f'{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/route?from={from_station_underground}&to={to_station_underground}')
 
     if not res.ok:
         return

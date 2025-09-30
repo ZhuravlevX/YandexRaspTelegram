@@ -1,18 +1,17 @@
 import logging
+import os
+
 import requests
 
 from src.utils.load_config import load_config
-from src.models.search_response_tramway import SearchResponse
+from src.models.mostrans.search_response_tramway import SearchResponse
 
 config = load_config()
-
-headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0"}
 
 
 def search_tramway(id_stops):
     search_request = requests.get(
-        f"https://api.moscowapp.mos.ru/v8.2/stop_v2/6cad6769-79fb-422d-96b0-c728bbeb6e07", headers=headers
-    )
+        f"{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mostrans/stop_info/c4c99fb1-05cf-485e-8526-91a528fe8952")
 
     if not search_request.ok:
         logging.warning(f"API request error {search_request.text.encode('UTF-8')}")
