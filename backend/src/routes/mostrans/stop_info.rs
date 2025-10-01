@@ -22,7 +22,13 @@ pub async fn get_stop_info(
         return Err(error::ErrorNotFound("Stop not found"));
     };
 
-    let stop_info = stop_info_response.json::<StopInfoResponse>().await.unwrap();
+    let mut stop_info = stop_info_response.json::<StopInfoResponse>().await.unwrap();
+
+    stop_info.route_path = stop_info
+        .route_path
+        .into_iter()
+        .filter(|rp| rp.route_type == "tram")
+        .collect();
 
     Ok(HttpResponse::Ok().json(stop_info))
 }

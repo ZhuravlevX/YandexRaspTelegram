@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 pub struct StopInfoResponse {
     pub id: String,
     pub name: String,
-    #[serde(rename = "type")]
-    pub stop_type: String,
     pub route_path: Vec<RoutePath>,
+    // #[serde(rename = "type")]
+    // pub stop_type: String,
     // pub wifi: bool,
     // pub bench: Value,
     // pub elevator: Value,
@@ -36,16 +36,16 @@ pub struct StopInfoResponse {
 pub struct RoutePath {
     pub id: String,
     #[serde(rename = "type")]
-    pub type_field: String,
+    pub route_type: String,
     pub number: String,
     pub last_stop_name: String,
+    pub external_forecast: Vec<ExternalForecast>,
     // pub color: String,
     // pub font_color: String,
-    pub city_shuttle: bool,
-    pub sber_shuttle: bool,
-    pub electrobus: bool,
-    pub rate_url: Option<String>,
-    pub external_forecast: Vec<ExternalForecast>,
+    // pub city_shuttle: bool,
+    // pub sber_shuttle: bool,
+    // pub electrobus: bool,
+    // pub rate_url: Option<String>,
     // pub external_forecast_time: Vec<Value>,
     // pub feature: Value,
     // pub is_favorite: bool,
@@ -56,7 +56,7 @@ pub struct RoutePath {
 #[serde(rename_all = "camelCase")]
 pub struct ExternalForecast {
     pub time: i64,
-    pub by_telemetry: i64,
     pub tm_id: i64,
     pub route_path_id: String,
+    // pub by_telemetry: i64,
 }

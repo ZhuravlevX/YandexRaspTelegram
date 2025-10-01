@@ -53,7 +53,8 @@ pub struct CardInfoCard {
 pub struct AvailableProduct {
     pub name: String,
     pub descr: String,
-    pub price_min: f64,
+    #[serde(rename(deserialize = "priceMin"))]
+    pub price: f64,
     // pub id: String,
     // pub type_name: String,
     // pub type_id: String,

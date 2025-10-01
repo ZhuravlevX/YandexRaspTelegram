@@ -3,6 +3,7 @@ use serde::Serialize;
 pub mod notifications;
 pub mod schema;
 pub mod router;
+pub mod troika;
 
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

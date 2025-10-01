@@ -1,5 +1,5 @@
 use crate::types::Environment;
-use crate::types::mostrans::troika::{CardInfoResponse, CardSearchResponse};
+use crate::types::mosmetro::troika::{CardInfoResponse, CardSearchResponse};
 use actix_web::{HttpResponse, error, get, web};
 
 #[get("/troika/card_number/{card_number}")]
@@ -53,9 +53,9 @@ pub async fn get_troika_by_card_number(
         return Err(error::ErrorInternalServerError("Card Info request failed"));
     }
 
-    let mut card_info = card_info_response_data.data.card.clone();
+    let mut card_info = card_info_response_data.data;
 
-    card_info.img = format!("https://lk.mosmetro.ru/api{}", card_info.img);
+    card_info.card.img = format!("https://lk.mosmetro.ru/api{}", card_info.card.img);
 
     Ok(HttpResponse::Ok().json(card_info))
 }

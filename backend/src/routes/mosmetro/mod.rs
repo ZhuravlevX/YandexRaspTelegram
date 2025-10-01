@@ -1,13 +1,15 @@
 use crate::routes::mosmetro::route::get_route;
 use crate::routes::mosmetro::station::{get_station, get_station_mini};
+use crate::routes::mosmetro::troika::card_number::get_troika_by_card_number;
 use crate::routes::mosmetro::wagons::get_wagons;
 use crate::state::AppState;
 use crate::utils::mosmetro::search::find_line_by_id;
-use actix_web::{get, web, HttpResponse, Responder};
+use actix_web::{HttpResponse, Responder, get, web};
 use station::search::get_search;
 
 pub mod route;
 mod station;
+mod troika;
 pub mod wagons;
 
 pub fn configure(cfg: &mut web::ServiceConfig) {
@@ -23,7 +25,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(get_notifications)
             .service(get_line)
             .service(get_route)
-            .service(get_wagons),
+            .service(get_wagons)
+            .service(get_troika_by_card_number)
     );
 }
 
