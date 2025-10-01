@@ -3,7 +3,7 @@ import re
 
 from pydantic import TypeAdapter
 
-from src.models.stations import Station
+from src.models.yandex.stations import Station
 from src.route_select.generate_stations_list import generate_stations_list
 
 

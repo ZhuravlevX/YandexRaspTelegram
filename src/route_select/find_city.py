@@ -3,7 +3,7 @@ import re
 
 from pydantic import TypeAdapter
 
-from src.models.cities import City
+from src.models.yandex.cities import City
 from src.route_select.generate_city_list import generate_city_list
 
 

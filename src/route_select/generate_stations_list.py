@@ -4,7 +4,7 @@ import re
 
 import requests
 
-from src.models.stations_list_response import StationsListResponse
+from src.models.yandex.stations_list_response import StationsListResponse
 
 
 def find_stations() -> dict[str, dict[str, str]]:

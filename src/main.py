@@ -341,10 +341,11 @@ async def update_underground(message: Message, user_id: int, state: FSMContext):
                             "🚇🔄 <b>Повторная попытка собрать маршрут... Пожалуйста, подождите...</b>",
                         )
                         await asyncio.sleep(2)
-                        await update_underground(message, user_id, state)
-                        return
-                else:
-                    train_info = "🚇🚫 <b>К сожалению не удалось собрать путь до конечной станции. Попробуйте позже.</b>"
+                        train_info = get_underground_info(from_station_underground, to_station_underground)
+                        if not train_info:
+                            return
+                        else:
+                            last_valid_train_info = train_info
         else:
             last_valid_train_info = train_info
 
@@ -409,8 +410,8 @@ async def send_underground(message: Message, state: FSMContext):
             await asyncio.sleep(10)
 
             try:
-                await initial_message.edit_text("🚇🚫 <b>Не удалось получить информацию об маршруте следования. "
-                                                "Попробуйте снова позже или проверьте правильность введенных станций. В случае многократного раза, обращайтесь в /feedback.</b>")
+                await initial_message.edit_text("🚇🚫 <b>Не удалось построить маршрут до конечной станции следования. "
+                                                "Попробуйте снова чуть позже или проверьте правильность введенных станций. В случае многократного раза появления неудач, сообщите в /feedback.</b>")
                 auto_update_users[user_id] = False
             except Exception as e:
                 pass
