@@ -14,7 +14,7 @@ from aiogram.filters.command import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.storage.mongo import MongoStorage
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, Message, CallbackQuery, \
-    LabeledPrice, PreCheckoutQuery
+    LabeledPrice, PreCheckoutQuery, URLInputFile
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 from aiogram.client.default import DefaultBotProperties
@@ -23,6 +23,7 @@ from src.requests.get_suburban_info import get_suburban_info
 from src.requests.get_train_info import get_train_info
 from src.requests.get_tramway_info import get_tramway_info
 from src.requests.get_underground_info import get_underground_info
+from src.requests.get_transport_card_info import get_troika_info, get_troika_image
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
 from src.utils.Image_selector import ImageSelector
@@ -179,6 +180,7 @@ async def send_suburbans(message: Message, state: FSMContext):
     except Exception:
         pass
 
+
 # Tramway
 async def update_tramway(message: Message, user_id: int, state: FSMContext):
     remaining_time = 3600
@@ -303,6 +305,7 @@ async def send_tramway(message: Message, state: FSMContext):
         await message.delete()
     except Exception:
         pass
+
 
 # Undergrounds
 async def update_underground(message: Message, user_id: int, state: FSMContext):
@@ -571,7 +574,7 @@ async def handle_schedule(callback_query: types.CallbackQuery, state: FSMContext
                               InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")],
                              [InlineKeyboardButton(text="🚇 | Московский метрополитен",
                                                    callback_data="send_underground"),
-                             InlineKeyboardButton(text="🚊 | Трамваи",
+                              InlineKeyboardButton(text="🚊 | Трамваи",
                                                    callback_data="send_tramway")]
                              ])
     else:
@@ -689,6 +692,54 @@ async def process_successful_payment(message: types.Message):
                            text='<b>⭐❤ Спасибо вам, что вы поддержали разработчика! Этим действием вы даете понять, что вы цените чужой труд!</b>',
                            message_effect_id="5159385139981059251")
     logging.info(f"Telegram Stars successful payment: {message.successful_payment.telegram_payment_charge_id}")
+
+
+# Transport card
+@dp.message(Command('troika_search'))
+async def troika_search_handler(message: Message, state: FSMContext):
+    parts = message.text.strip().split()
+    invalid_card = len(parts) != 2 or not parts[1].isdigit() or len(parts[1]) != 10
+
+    if invalid_card:
+        temp_msg = await message.answer(
+            '<b>💳❌ Номер карты должен содержать ровно 10 цифр. Используйте команду следующим образом: <i>/troika_search 1234567890</i></b>'
+        )
+        await message.delete()
+        await asyncio.sleep(15)
+        await temp_msg.delete()
+        return
+
+    await message.delete()
+    card_number = parts[1]
+    temp_msg = await message.answer("💳⌛ <b>Получаем информацию об транспортной карте и тарифах по указанному номеру...</b>")
+
+    try:
+        result = get_troika_info(card_number)
+    except Exception:
+        await temp_msg.edit_text(
+            '💳❌ <b>Произошла ошибка при получении информации по карте. Попробуйте позже произвести данную операцию.</b>'
+        )
+        await asyncio.sleep(15)
+        await temp_msg.delete()
+        return
+
+    if not result:
+        await temp_msg.edit_text(
+            f'💳❌ <b>Карта с номером {card_number} не найдена, либо она недоступна.</b>'
+        )
+        await asyncio.sleep(15)
+        await temp_msg.delete()
+        return
+
+    image_url = get_troika_image(card_number)
+    photo = URLInputFile(image_url, filename='troika.png')
+
+    await temp_msg.edit_media(
+        InputMediaPhoto(
+            media=photo,
+            caption=str(result)
+        )
+    )
 
 
 # Settings

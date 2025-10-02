@@ -5,12 +5,10 @@ from pydantic import BaseModel
 class SearchResponse(BaseModel):
     id: str
     name: str
-    type: str
     routePath: List[RoutePathItem]
 
 class ExternalForecastItem(BaseModel):
     time: int
-    byTelemetry: int
     tmId: int
     routePathId: str
 
@@ -19,8 +17,4 @@ class RoutePathItem(BaseModel):
     type: str
     number: str
     lastStopName: str
-    cityShuttle: bool
-    sberShuttle: bool
-    electrobus: bool
-    rateUrl: Optional[str]
     externalForecast: List[ExternalForecastItem]
