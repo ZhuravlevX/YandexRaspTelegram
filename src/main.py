@@ -23,9 +23,10 @@ from src.requests.get_suburban_info import get_suburban_info
 from src.requests.get_train_info import get_train_info
 from src.requests.get_tramway_info import get_tramway_info
 from src.requests.get_underground_info import get_underground_info
-from src.requests.get_transport_card_info import get_troika_info, get_troika_image
+from src.requests.get_transport_card_info import get_troika_info
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
+from src.troika_interaction.payments_troika import troika_pay
 from src.utils.Image_selector import ImageSelector
 
 load_dotenv()
@@ -41,6 +42,7 @@ russian_timezones = config.russian_timezones
 dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
+dp.include_router(troika_pay)
 
 
 class FeedbackStates(StatesGroup):
@@ -117,7 +119,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
                     additional_text = f"\n🚉⌛️ <b>Автообновление было завершено в {current_time}, учтите актуальность данного расписания.</b>"
                     auto_update_users[user_id] = False
                     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                        [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                        [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
                     ])
 
                 train_info += additional_text
@@ -126,7 +128,7 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext):
             else:
                 additional_text = f"\n🚉 <b>Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания.</b>"
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
                 ])
 
                 train_info += additional_text
@@ -159,11 +161,19 @@ async def send_suburbans(message: Message, state: FSMContext):
     if auto_update_users.get(user_id, False):
         await message.reply("🚆🗓 <b>Расписание с автообновление на данный момент активно. "
                             "Пожалуйста, отключите текущее автообновление перед запуском нового расписания.</b>")
+        try:
+            await message.delete()
+        except Exception:
+            pass
         return
 
     if not from_station or not to_station:
         await message.reply("🚆🏫 <b>Маршрут следования не был установлен. "
                             "Пожалуйста, установите маршрут перед поиском расписания следования пригородных поездов.</b>")
+        try:
+            await message.delete()
+        except Exception:
+            pass
         return
     else:
 
@@ -238,7 +248,7 @@ async def update_tramway(message: Message, user_id: int, state: FSMContext):
                 additional_text = f"\n🚊⌛ <b>Автообновление завершено в {current_time}. Данные могут быть устаревшими.</b>"
                 auto_update_users[user_id] = False
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
                 ])
 
             tramway_info += additional_text
@@ -247,7 +257,7 @@ async def update_tramway(message: Message, user_id: int, state: FSMContext):
         else:
             additional_text = f"\n🚊 <b>Расписание вызвано в {current_time} без автообновления.</b>"
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
             ])
             tramway_info += additional_text
             media = InputMediaPhoto(media=random_image, caption=tramway_info)
@@ -366,7 +376,7 @@ async def update_underground(message: Message, user_id: int, state: FSMContext):
                 additional_text = f"\n🚇⌛ <b>Автообновление завершено в {current_time}. Данные могут быть устаревшими.</b>"
                 auto_update_users[user_id] = False
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
                 ])
 
             train_info += additional_text
@@ -375,7 +385,7 @@ async def update_underground(message: Message, user_id: int, state: FSMContext):
         else:
             additional_text = f"\n🚇 <b>Расписание вызвано в {current_time} без автообновления.</b>"
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
             ])
             train_info += additional_text
             media = InputMediaPhoto(media=random_image, caption=train_info)
@@ -472,7 +482,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
                     additional_text = f"\n🛤⌛ <b>Автообновление было завершено в {current_time}, учтите актуальность данного расписания.</b>"
                     auto_update_users[user_id] = False
                     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                        [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                        [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
                     ])
 
                 train_info += additional_text
@@ -481,7 +491,7 @@ async def update_trains(message: Message, user_id: int, state: FSMContext):
             else:
                 additional_text = f"\n🛤 <b>Расписание было вызвано в {current_time} без автообновления, учтите актуальность данного расписания.</b>"
                 keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_schedule")]
+                    [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
                 ])
 
                 train_info += additional_text
@@ -605,10 +615,10 @@ async def handle_routes(callback_query: types.CallbackQuery, state: FSMContext):
         reply_markup=keyboard)
 
 
-@dp.callback_query(lambda c: c.data == 'delete_schedule')
-async def delete_schedule(callback_query: types.CallbackQuery):
+@dp.callback_query(lambda c: c.data == 'delete_message')
+async def delete_message(callback_query: types.CallbackQuery):
     await bot.delete_message(chat_id=callback_query.message.chat.id, message_id=callback_query.message.message_id)
-    await bot.answer_callback_query(callback_query.id, text="🗑 Расписание было удалено.")
+    # await bot.answer_callback_query(callback_query.id, text="🗑 Расписание было удалено.")
 
 
 @dp.callback_query(lambda c: c.data == 'cancel_update')
@@ -695,29 +705,39 @@ async def process_successful_payment(message: types.Message):
 
 
 # Transport card
-@dp.message(Command('troika_search'))
+@dp.message(Command('troika'))
 async def troika_search_handler(message: Message, state: FSMContext):
     parts = message.text.strip().split()
     invalid_card = len(parts) != 2 or not parts[1].isdigit() or len(parts[1]) != 10
 
     if invalid_card:
         temp_msg = await message.answer(
-            '<b>💳❌ Номер карты должен содержать ровно 10 цифр. Используйте команду следующим образом: <i>/troika_search 1234567890</i></b>'
+            '<b>💳🚫 Номер карты должен содержать ровно 10 цифр. Используйте команду следующим образом: <i>/troika 1234567890</i></b>'
         )
-        await message.delete()
+        try:
+            await message.delete()
+        except Exception:
+            pass
         await asyncio.sleep(15)
-        await temp_msg.delete()
+        try:
+            await temp_msg.delete()
+        except Exception:
+            pass
         return
 
-    await message.delete()
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
     card_number = parts[1]
     temp_msg = await message.answer("💳⌛ <b>Получаем информацию об транспортной карте и тарифах по указанному номеру...</b>")
 
     try:
-        result = get_troika_info(card_number)
+        result, img = get_troika_info(card_number)
     except Exception:
         await temp_msg.edit_text(
-            '💳❌ <b>Произошла ошибка при получении информации по карте. Попробуйте позже произвести данную операцию.</b>'
+            f'💳🚫 <b>Карта с номером {card_number} не найдена, либо она недоступна.</b>'
         )
         await asyncio.sleep(15)
         await temp_msg.delete()
@@ -725,21 +745,31 @@ async def troika_search_handler(message: Message, state: FSMContext):
 
     if not result:
         await temp_msg.edit_text(
-            f'💳❌ <b>Карта с номером {card_number} не найдена, либо она недоступна.</b>'
+            f'💳🚫 <b>Карта с номером {card_number} не найдена, либо она недоступна.</b>'
         )
         await asyncio.sleep(15)
         await temp_msg.delete()
         return
 
-    image_url = get_troika_image(card_number)
-    photo = URLInputFile(image_url, filename='troika.png')
+    photo = URLInputFile(img, filename='troika.png')
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💰 | Пополнить баланс", callback_data=f"topup_{card_number}")],
+            [InlineKeyboardButton(text="🗑 | Удалить информацию", callback_data="delete_message")],
+        ]
+    )
 
     await temp_msg.edit_media(
         InputMediaPhoto(
             media=photo,
             caption=str(result)
-        )
+        ),
+        reply_markup=keyboard
     )
+
+
+
 
 
 # Settings
