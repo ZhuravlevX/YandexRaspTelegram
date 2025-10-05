@@ -11,7 +11,8 @@
     'https://railgallery.ru/photo/02/27/81/227817.jpg',
     'https://railgallery.ru/photo/02/33/02/233023.jpg',
     'https://railgallery.ru/photo/01/96/32/196322.jpg',
-    'https://railgallery.ru/photo/00/41/04/41048.jpg'
+    'https://railgallery.ru/photo/00/41/04/41048.jpg',
+    'https://railgallery.ru/photo/02/93/87/293870.jpg'
   ],
 
   // Список ссылок на картинки электропоездов московского метрополитена для ответов бота
@@ -24,7 +25,9 @@
     'https://transphoto.org/photo/21/04/44/2104442.jpg',
     'https://transphoto.org/photo/21/01/25/2101251.jpg',
     'https://transphoto.org/photo/20/98/00/2098004.jpg',
-    'https://transphoto.org/photo/20/84/60/2084609.jpg'
+    'https://transphoto.org/photo/20/84/60/2084609.jpg',
+    'https://transphoto.org/photo/21/83/61/2183615.jpg',
+    'https://transphoto.org/photo/21/67/28/2167284.jpg'
   ],
 
   // Список ссылок на картинки трамваев московского транспорта для ответов бота
