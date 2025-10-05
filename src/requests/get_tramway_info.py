@@ -4,20 +4,20 @@ import os
 import requests
 
 from src.utils.load_config import load_config
-from src.models.mostrans.search_response_tramway import SearchResponse
+from src.models.mostrans.stops_tramway import StopsTramway
 
 config = load_config()
 
 
 def search_tramway(id_stops):
     search_request = requests.get(
-        f"{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mostrans/stop_info/c4c99fb1-05cf-485e-8526-91a528fe8952")
+        f"{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mostrans/stop_info/1e82aaca-b4f4-42f9-8c40-46562ee4b501")
 
     if not search_request.ok:
         logging.warning(f"API request error {search_request.text.encode('UTF-8')}")
         return None, None
 
-    info = SearchResponse(**search_request.json())
+    info = StopsTramway(**search_request.json())
     tramway = info.routePath
 
     return tramway, info

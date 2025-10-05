@@ -584,7 +584,7 @@ async def handle_schedule(callback_query: types.CallbackQuery, state: FSMContext
                               InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")],
                              [InlineKeyboardButton(text="🚇 | Московский метрополитен",
                                                    callback_data="send_underground"),
-                              InlineKeyboardButton(text="🚊 | Трамваи",
+                              InlineKeyboardButton(text="🚊 | Московский транспорт",
                                                    callback_data="send_tramway")]
                              ])
     else:

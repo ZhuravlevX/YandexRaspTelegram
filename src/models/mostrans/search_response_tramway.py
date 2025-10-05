@@ -1,20 +1,35 @@
 from __future__ import annotations
-from typing import List, Optional
+
+from typing import List
+
 from pydantic import BaseModel
 
-class SearchResponse(BaseModel):
+
+class Stop(BaseModel):
     id: str
+    num: int
     name: str
-    routePath: List[RoutePathItem]
+    lat: float
+    lon: float
 
-class ExternalForecastItem(BaseModel):
-    time: int
-    tmId: int
-    routePathId: str
 
-class RoutePathItem(BaseModel):
+class RoutePath(BaseModel):
     id: str
-    type: str
-    number: str
+    stops: List[Stop]
+    endStopName: str
+    lineColor: str
+    lineTransparent: bool
+
+
+class Direction(BaseModel):
+    firstStopName: str
     lastStopName: str
-    externalForecast: List[ExternalForecastItem]
+    routePaths: List[RoutePath]
+
+
+class Route(BaseModel):
+    id: str
+    number: str
+    type: str
+    directions: List[Direction]
+    contractor: str
