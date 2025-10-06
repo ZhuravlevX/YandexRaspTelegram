@@ -56,6 +56,7 @@ pub async fn get_troika_by_card_number(
     let mut card_info = card_info_response_data.data;
 
     card_info.card.img = format!("https://lk.mosmetro.ru/api{}", card_info.card.img);
-
+    card_info.card.uid = card_uid;
+    
     Ok(HttpResponse::Ok().json(card_info))
 }

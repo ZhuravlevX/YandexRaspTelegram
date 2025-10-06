@@ -14,11 +14,11 @@ pub struct CardSearchCard {
     pub type_id: String,
     pub limited: bool,
     pub limited_edition_name: Option<String>,
+    pub img: String,
     // pub type_name: String,
     // pub cms_name: String,
     // pub cms_title: String,
     // pub icon: String,
-    pub img: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -39,23 +39,25 @@ pub struct CardInfoData {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CardInfoCard {
+    #[serde(default)]
+    pub uid: String,
     pub card_number: String,
     pub display_name: String,
     #[serde(rename(deserialize = "limitedEditionName"))]
     pub limited: Option<String>,
     pub card_type: String,
-    // pub icon: String,
     pub img: String,
+    // pub icon: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AvailableProduct {
+    pub id: String,
     pub name: String,
     pub descr: String,
     #[serde(rename(deserialize = "priceMin"))]
     pub price: f64,
-    // pub id: String,
     // pub type_name: String,
     // pub type_id: String,
     // pub price_max: f64,
