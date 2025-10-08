@@ -767,16 +767,26 @@ async def troika_search_handler(message: Message):
     await temp_msg.edit_media(InputMediaPhoto(media=photo, caption=str(result)), reply_markup=keyboard)
 
 
-    await temp_msg.edit_media(
-        InputMediaPhoto(
-            media=photo,
-            caption=str(result)
-        ),
-        reply_markup=keyboard
-    )
+@dp.message(Command("transportcard"))
+async def transport_card_handler(message: Message, state: FSMContext):
+    data = await state.get_data()
+    refresh_token = data.get("refresh_token")
 
-
-
+    if not refresh_token:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="📎 | Авторизоваться в личный кабинет",
+                                      callback_data="authorize_transportcard")]
+            ]
+        )
+        await message.answer(
+            '👤ℹ <b>Для того, чтобы просматривать информацию об своих привязанных транспортных картах, необходимо авторизоваться по своему номеру телефона, '
+            'к которому привязан ваш личный кабинет.</b>',
+            reply_markup=keyboard
+        )
+    else:
+        await message.answer("Вы уже авторизованы. Здесь будет ваша информация по транспортной карте.")
+    await message.delete()
 
 
 # Settings
