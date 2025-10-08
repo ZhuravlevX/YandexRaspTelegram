@@ -140,7 +140,7 @@ async def process_sms_code(message: Message, state: FSMContext, bot: Bot):
 
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": "Basic ZjljM2M4NTktOTc3YS00ZWI3LTliY2UtNDM2OTk2NGRmODU1OlJkb3pEZjkzakxLcDI2MzVFcG1KVUwzbWM2bzFVSw==",
+        "Authorization": f"Basic {os.getenv("AUTHORIZATION_BASIC")}",
         "User-Agent": "MosMetro/4.2.3 (7874) (Android; samsung SM-A155F; 15; 2629830780)"
     }
 
