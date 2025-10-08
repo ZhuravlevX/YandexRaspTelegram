@@ -27,6 +27,7 @@ from src.requests.get_transport_card_info import get_troika_info
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
 from src.troika_interaction.payments_troika import troika_pay
+from src.troika_interaction.authorization_troika import troika_auth
 from src.utils.Image_selector import ImageSelector
 
 load_dotenv()
@@ -43,6 +44,7 @@ dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
     os.getenv("MONGO_URL")))
 dp.include_router(route_selector)
 dp.include_router(troika_pay)
+dp.include_router(troika_auth)
 
 
 class FeedbackStates(StatesGroup):
@@ -583,8 +585,8 @@ async def handle_schedule(callback_query: types.CallbackQuery, state: FSMContext
             inline_keyboard=[[InlineKeyboardButton(text="🚉 | Пригородные поезда", callback_data="send_suburban"),
                               InlineKeyboardButton(text="🚂 | Поезда дальнего следования", callback_data="send_train")],
                              [InlineKeyboardButton(text="🚇 | Московский метрополитен",
-                                                   callback_data="send_underground"),
-                              InlineKeyboardButton(text="🚊 | Московский транспорт",
+                                                   callback_data="send_underground")],
+                             [InlineKeyboardButton(text="🚊 | Московский транспорт",
                                                    callback_data="send_tramway")]
                              ])
     else:
@@ -706,14 +708,13 @@ async def process_successful_payment(message: types.Message):
 
 # Transport card
 @dp.message(Command('troika'))
-async def troika_search_handler(message: Message, state: FSMContext):
+async def troika_search_handler(message: Message):
     parts = message.text.strip().split()
     invalid_card = len(parts) != 2 or not parts[1].isdigit() or len(parts[1]) != 10
 
     if invalid_card:
         temp_msg = await message.answer(
-            '<b>💳🚫 Номер карты должен содержать ровно 10 цифр. Используйте команду следующим образом: <i>/troika 1234567890</i></b>'
-        )
+            '<b>💳🚫 Номер карты должен содержать ровно 10 цифр. Используйте команду следующим образом: <i>/troika 1234567890</i></b>')
         try:
             await message.delete()
         except Exception:
@@ -731,7 +732,8 @@ async def troika_search_handler(message: Message, state: FSMContext):
         pass
 
     card_number = parts[1]
-    temp_msg = await message.answer("💳⌛ <b>Получаем информацию об транспортной карте и тарифах по указанному номеру...</b>")
+    temp_msg = await message.answer(
+        "💳⌛ <b>Получаем информацию об транспортной карте и тарифах по указанному номеру...</b>")
 
     try:
         result, img = get_troika_info(card_number)
@@ -755,10 +757,15 @@ async def troika_search_handler(message: Message, state: FSMContext):
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="💰 | Пополнить баланс", callback_data=f"topup_{card_number}")],
+            [InlineKeyboardButton(text="💸 | Пополнить",
+                                  callback_data=f"topup_{card_number}"),
+             InlineKeyboardButton(text="🎟 | Тарифы",
+                                  callback_data=f"tariff_{card_number}")],
             [InlineKeyboardButton(text="🗑 | Удалить информацию", callback_data="delete_message")],
         ]
     )
+    await temp_msg.edit_media(InputMediaPhoto(media=photo, caption=str(result)), reply_markup=keyboard)
+
 
     await temp_msg.edit_media(
         InputMediaPhoto(

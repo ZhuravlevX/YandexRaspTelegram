@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 
 class Card(BaseModel):
+    uid: str
     cardNumber: str
     displayName: str
     limited: Optional[str]
@@ -12,6 +13,7 @@ class Card(BaseModel):
 
 
 class AvailableProduct(BaseModel):
+    id: int
     name: str
     descr: str
     price: int
