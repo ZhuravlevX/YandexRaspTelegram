@@ -1,13 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Clone)]
-pub struct SuggestData {
-    pub id: String,
-    pub name: String,
-    pub description: String,
-    pub route_number: String,
-}
-
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SuggestResponse {
     pub data: Vec<Data>,

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-// Важно! Закоменнтированные части присутствуют в ответе апишки, но не требуются для данного проекта 
+// Важно! Закоменнтированные части присутствуют в ответе апишки, но не требуются для данного проекта
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SchemaResponse {
@@ -18,12 +18,6 @@ pub struct Schema {
     // pub additional: Vec<Additional>,
     // pub width: i64,
     // pub height: i64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Additional {
-    pub id: String,
-    pub svg: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -124,11 +118,6 @@ pub struct Name {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Text {
-    pub ru: Option<String>,
-    pub en: Option<String>,
-}
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ScheduleTrain {
     pub station_to_id: i64,
@@ -168,22 +157,6 @@ pub enum Service {
     Toilet,
     Vending,
     Window,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct StationSvg {
-    pub svg: String,
-    pub x: f64,
-    pub y: f64,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Svg {
-    pub x: f64,
-    pub y: f64,
-    pub h: f64,
-    pub w: f64,
-    pub svg: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
