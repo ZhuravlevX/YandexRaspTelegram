@@ -11,7 +11,7 @@ config = load_config()
 
 def search_tramway(id_stops):
     search_request = requests.get(
-        f"{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mostrans/stop_info/1e82aaca-b4f4-42f9-8c40-46562ee4b501")
+        f"{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mostrans/stop_info/c4c99fb1-05cf-485e-8526-91a528fe8952")
 
     if not search_request.ok:
         logging.warning(f"API request error {search_request.text.encode('UTF-8')}")
@@ -37,7 +37,7 @@ def format_tramway_info(tramways, info, id_stops):
             if duration == 0 or seconds == 0:
                 duration_time = "Прибывает на остановку"
             elif minutes < 1:
-                duration_time = f'Время до прибытия: {int(seconds)} сек.'
+                duration_time = f'Время до прибытия: <1 мин.'
             elif minutes < 60:
                 duration_time = f'Время до прибытия: {int(minutes)} мин. {int(seconds)} сек.'
             else:
@@ -46,7 +46,7 @@ def format_tramway_info(tramways, info, id_stops):
 
         this_tramway_info = f'🚊 <b>Трамвай {tramway.number} | «{tramway.lastStopName}»</b>\n' \
                             f'<i>Стоимость проезда по «Тройке»: 67 рублей</i>\n' \
-                            f'<i>Витязь/Львенок | ГУП «Московский Метрополитен»/ГУП «Мосгортранс»</i>\n' \
+                            f'<i>Витязь/Львенок | ГУП «Московский Метрополитен»</i>\n' \
                             f'<b>{duration_time}</b>\n'
 
         if len(msg + this_tramway_info) > 900:

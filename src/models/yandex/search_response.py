@@ -38,7 +38,7 @@ class Thread(BaseModel):
     carrier: Carrier
     uid: str
     vehicle: Any
-    transport_subtype: TransportSubtype
+    transport_subtype: Optional[TransportSubtype]
     thread_method_link: str
 
 
@@ -48,9 +48,6 @@ class From(BaseModel):
     short_title: Optional[str]
     popular_title: Optional[str]
     code: str
-    station_type: str
-    station_type_name: str
-    transport_type: str
 
 
 class To(BaseModel):
@@ -59,9 +56,6 @@ class To(BaseModel):
     short_title: Optional[str]
     popular_title: Optional[str]
     code: str
-    station_type: str
-    station_type_name: str
-    transport_type: str
 
 
 class Search(BaseModel):
@@ -90,9 +84,9 @@ class Carrier(BaseModel):
 
 
 class TransportSubtype(BaseModel):
-    title: str
-    code: str
-    color: str
+    title: Optional[str]
+    code: Optional[str]
+    color: Optional[str]
 
 class Price(BaseModel):
     whole: int

@@ -8,7 +8,7 @@ from babel.dates import format_date
 
 from src.requests.get_weather_info import get_weather_title
 from src.utils.load_config import load_config
-from src.models.yandex.search_response_train import SearchResponse
+from src.models.yandex.search_response import SearchResponse
 
 config = load_config()
 
@@ -63,16 +63,16 @@ def format_train_info(trains, info, date, tz_str):
         if hours == 0 and minutes == 0:
             time_until_arrival_str = 'Отправляться от вокзала или пункта остановки'
         elif hours == 0:
-            time_until_arrival_str = f'{minutes} мин.'
+            time_until_arrival_str = f'Время до отправления: {minutes} мин.'
         else:
-            time_until_arrival_str = f'{hours} час {minutes} мин.'
+            time_until_arrival_str = f'Время до отправления: {hours} час {minutes} мин.'
 
         this_train_info = f'{emoji} <b>{train.thread.number} | {train.thread.title}</b>\n' \
                           f'<i>Отправляется с {train.from_.title} в {train.departure.hour}:{train.departure.minute:02d} по местному времени</i>\n' \
                           f'<i>Прибудет в {train.to.title} в {train.arrival.hour}:{train.arrival.minute:02d} по местному времени</i>\n' \
                           f'<i>Время в пути составит: {duration_time}</i>\n' \
                           f'<i>{transport_subtype} | {train.thread.carrier.title}</i>\n' \
-                          f'<b>Время до отправления: {time_until_arrival_str}</b>\n'
+                          f'<b>{time_until_arrival_str}</b>\n'
 
         if len(msg + this_train_info) > 900:
             break

@@ -15,6 +15,8 @@ weather_emoji = {
     "light snow": "❄🌥🌨",
     "rain and snow": "🌧❄️",
     "rain": "🌧",
+    "fog": "🌫",
+    "light intensity drizzle": "💧",
     "thunderstorm": "⛈",
     "mist": "🌫"
 }
