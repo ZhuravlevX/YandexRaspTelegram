@@ -10,6 +10,7 @@ pub struct Environment {
     pub router_api_url: String,
     pub lk_mosmetro_api_url: String,
     pub moscowapp_api_url: String,
+    pub mosmetro_auth_url: String,
 }
 
 fn default_host() -> String {

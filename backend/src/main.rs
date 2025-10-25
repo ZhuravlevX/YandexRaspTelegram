@@ -49,6 +49,11 @@ async fn main() -> std::io::Result<()> {
     let host = env.host.clone();
     let port = env.port.clone();
 
+    let rq_client = reqwest::Client::builder()
+        .user_agent("MosMetro/4.2.3 (7874) (Android; samsung SM-A155F; 15; 2629830780)")
+        .build()
+        .expect("Error building reqwest client");
+
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
@@ -57,6 +62,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::from(app_state.clone()))
             .app_data(web::Data::new(awc::Client::new()))
             .app_data(web::Data::new(env.clone()))
+            .app_data(web::Data::new(rq_client.clone()))
     })
     .bind((host, port))?
     .workers(4)

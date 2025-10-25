@@ -2,7 +2,7 @@ use crate::types::Environment;
 use crate::types::mosmetro::troika::{CardInfoResponse, CardSearchResponse};
 use actix_web::{HttpResponse, error, get, web};
 
-#[get("/troika/card_number/{card_number}")]
+#[get("/card_number/{card_number}")]
 pub async fn get_troika_by_card_number(
     env: web::Data<Environment>,
     client: web::Data<awc::Client>,
@@ -57,6 +57,6 @@ pub async fn get_troika_by_card_number(
 
     card_info.card.img = format!("https://lk.mosmetro.ru/api{}", card_info.card.img);
     card_info.card.uid = card_uid;
-    
+
     Ok(HttpResponse::Ok().json(card_info))
 }
