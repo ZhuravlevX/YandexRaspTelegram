@@ -58,6 +58,14 @@
     'https://railgallery.ru/photo/00/35/95/35956.jpg'
   ],
 
+  // Список ссылок на картинки самолётов для ответов бота
+  plane_urls: [
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Airbus_A320_Rossiya_Airlines.jpg/960px-Airbus_A320_Rossiya_Airlines.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Aeroflot_-_Russian_Airlines_%28Retro_livery%29%2C_Airbus_A320-214%2C_VP-BNT_%2814259211763%29.jpg/960px-Aeroflot_-_Russian_Airlines_%28Retro_livery%29%2C_Airbus_A320-214%2C_VP-BNT_%2814259211763%29.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/cc/Airbus_A320-214%2C_Rossiya_-_Russian_Airlines_AN2341289.jpg/960px-Airbus_A320-214%2C_Rossiya_-_Russian_Airlines_AN2341289.jpg',
+    'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Rossiya%2C_VP-BZR%2C_Airbus_A320-214_%2842498458970%29.jpg/960px-Rossiya%2C_VP-BZR%2C_Airbus_A320-214_%2842498458970%29.jpg'
+  ],
+
   // Список эмодзи для разных типов пригородных поездов
   suburban_map: {
     'Экспресс': '🚅',

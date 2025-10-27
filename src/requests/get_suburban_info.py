@@ -6,6 +6,7 @@ import pytz
 import requests
 from babel.dates import format_date
 
+from src.models.yandex.suburban_response import SuburbanResponse
 from src.utils.load_config import load_config
 from src.models.yandex.search_response import SearchResponse
 from src.requests.get_weather_info import get_weather_code
@@ -76,17 +77,28 @@ def format_suburban_info(suburbans, info, date, tz_str, from_station, to_station
         if hours == 0 and minutes == 0:
             time_until_arrival_str = 'Прибывает на станцию'
         elif hours == 0:
-            time_until_arrival_str = f'{minutes} мин.'
+            time_until_arrival_str = f'Время до прибытия: {minutes} мин.'
         else:
-            time_until_arrival_str = f'{hours} час. {minutes} мин.'
+            time_until_arrival_str = f'Время до прибытия: {hours} час {minutes} мин.'
+
+        suburban_request = requests.get(
+            f"https://{suburban.thread.thread_method_link}&apikey={os.getenv('TOKEN_YANDEX')}"
+        )
+
+        if not suburban_request.ok:
+            logging.warning(f"API request error {suburban_request.text}")
+            return None, None
+
+        suburban_thread = SuburbanResponse(**suburban_request.json())
 
         this_suburban_info = f'{emoji} <b>{suburban.thread.number} | {suburban.thread.title}</b>\n' \
                              f'<i>Отправляется с {departure_platform} в {suburban.departure.hour}:{suburban.departure.minute:02d}</i>\n' \
                              f'<i>С остановками: {suburban.stops}</i>\n' \
+                             f'<i>Действует {suburban_thread.days}</i>\n' \
                              f'<i>Стоимость билета: {ticket_price}</i>\n' \
                              f'<i>Время в пути составит: {duration_time} ({suburban.arrival.hour}:{suburban.arrival.minute:02d})</i>\n' \
                              f'<i>{transport_subtype} | {suburban.thread.carrier.title}</i>\n' \
-                             f'<b>Время до прибытия: {time_until_arrival_str}</b>\n'
+                             f'<b>{time_until_arrival_str}</b>\n'
 
         if len(msg + this_suburban_info) > 900:
             break

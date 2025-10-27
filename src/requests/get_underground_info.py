@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import os
 from typing import List
 import requests
@@ -74,7 +75,7 @@ def stations_to_str(stations: List[StationMini]):
     return s
 
 
-def build_route_message(route: RouterResponse):
+def build_route_message(route: RouterResponse, start_time: datetime):
     msg = f'<b>↔ Путь от «{route.parts[0].nodes[0].name}» ({route.parts[0].nodes[0].lineName}) до «{route.parts[-1].nodes[-1].name}» ({route.parts[-1].nodes[-1].lineName})</b>\n\n<b><i>От</i></b> '
     for part in route.parts[:-1]:
         msg += stations_to_str(part.nodes)
@@ -92,7 +93,10 @@ def build_route_message(route: RouterResponse):
     else:
         duration_time = f'{int(minutes)} мин.'
 
-    msg += f'\n<i>Общее время пути: {duration_time}</i>'
+    arrival_time = start_time + timedelta(seconds=route.duration)
+    arrival_formatted = arrival_time.strftime('%H:%M')
+
+    msg += f'\n<i>Общее время пути: {duration_time} ({arrival_formatted})</i>'
     msg += '\n\n'
 
     for part in route.parts[:-1]:
@@ -115,5 +119,6 @@ def get_underground_info(from_station_underground: str, to_station_underground: 
         return None
 
     route = RouterResponse(**res.json())
-    text = build_route_message(route)
+    start_time = datetime.now()
+    text = build_route_message(route, start_time)
     return text
