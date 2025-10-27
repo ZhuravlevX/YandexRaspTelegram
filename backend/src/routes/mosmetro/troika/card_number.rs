@@ -1,6 +1,7 @@
+use crate::types::mosmetro::troika::card_info::CardInfoResponse;
+use crate::types::mosmetro::troika::card_search::CardSearchResponse;
 use crate::types::Environment;
-use crate::types::mosmetro::troika::{CardInfoResponse, CardSearchResponse};
-use actix_web::{HttpResponse, error, get, web};
+use actix_web::{error, get, web, HttpResponse};
 
 #[get("/card_number/{card_number}")]
 pub async fn get_troika_by_card_number(
