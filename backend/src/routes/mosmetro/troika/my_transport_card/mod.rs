@@ -15,7 +15,7 @@ use std::time::SystemTime;
 #[derive(Deserialize)]
 struct QueryParams {
     access_token: String,
-    card_number: Option<String>,
+    // card_number: Option<String>,
 }
 
 #[get("/")]
@@ -45,11 +45,18 @@ pub async fn get_my_transport_card(
         .map(Into::into)
         .collect();
 
-    for card in response.cards.iter_mut() {
-        // card.operations =
-        //     fetch_operations(client.clone(), &card.linked_card_id, &query.access_token).await?;
-        // card.trips = fetch_trips(client.clone(), &card.linked_card_id, &query.access_token).await?;
-    }
+    response.waiting_link_cards = linked_cards
+        .data
+        .waiting_link_cards
+        .into_iter()
+        .map(Into::into)
+        .collect();
+
+    // for card in response.cards.iter_mut() {
+    // card.operations =
+    //     fetch_operations(client.clone(), &card.linked_card_id, &query.access_token).await?;
+    // card.trips = fetch_trips(client.clone(), &card.linked_card_id, &query.access_token).await?;
+    // }
 
     Ok(HttpResponse::Ok().json(response))
 }
@@ -137,6 +144,14 @@ pub struct Card {
 
 impl From<linked_cards::Card> for Card {
     fn from(card: linked_cards::Card) -> Self {
+        let unbalance = card.deferred_actions.into_iter().fold(0, |acc, action| {
+            if action.operation_name == "КОШЕЛЕК" {
+                acc + action.sum as i32
+            } else {
+                acc
+            }
+        });
+
         Self {
             card_number: card
                 .card
@@ -148,7 +163,7 @@ impl From<linked_cards::Card> for Card {
             linked_card_id: card.card.linked_card_id,
             status: card.status,
             balance: card.balance.balance.floor() as i32,
-            unbalance: card.deferred_actions.first().map(|a| a.sum.floor() as i32),
+            unbalance: if unbalance > 0 { Some(unbalance) } else { None },
             tickets: card.tickets,
             operations: Vec::new(),
             trips: Vec::new(),
@@ -204,7 +219,7 @@ impl From<trips::Item> for Trip {
             line_name: value
                 .trip
                 .metro_details
-                .and_then(|d| d.lines.first().map(|l| l.name.clone())),
+                .and_then(|details| details.lines.first().map(|line| line.name.clone())),
         }
     }
 }
@@ -221,10 +236,28 @@ pub struct WaitingLinkCard {
     pub link_by_payment_state: LinkByPaymentState,
 }
 
+impl From<linked_cards::WaitingLinkCard> for WaitingLinkCard {
+    fn from(value: linked_cards::WaitingLinkCard) -> Self {
+        Self {
+            card_number: value.card.card_number,
+            linked_card_id: value.card.linked_card_id,
+            card_uid: value.card.card_uid,
+            card_type: value.card.card_type,
+            card_type_name: value.card.card_type_name,
+            display_name: value.card.display_name,
+            link_by_payment_state: LinkByPaymentState {
+                confirm_date_time_to_utc: value.link_by_payment_state.confirm_date_time_to_utc,
+                confirm_sum: value.link_by_payment_state.confirm_sum as i32,
+                status: value.link_by_payment_state.status,
+            },
+        }
+    }
+}
+
 #[derive(Default, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LinkByPaymentState {
-    pub confirm_date_time_to_utc: i32,
+    pub confirm_date_time_to_utc: i64,
     pub confirm_sum: i32,
     pub status: String,
 }
