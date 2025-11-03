@@ -46,6 +46,8 @@ pub struct Balance {
 #[serde(rename_all = "camelCase")]
 pub struct DeferredAction {
     pub operation_name: String,
+    pub ticket_name: String,
+    pub ticket_type: String,
     pub sum: f64,
     pub date: i64,
 }

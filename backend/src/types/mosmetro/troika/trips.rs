@@ -28,12 +28,12 @@ pub struct Item {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Trip {
-    pub date: i32,
+    pub date: i64,
     pub ground_details: Option<GroundDetails>,
     pub metro_details: Option<MetroDetails>,
     pub is_face_pay: bool,
-    // #[serde(rename = "type")]
-    // pub type_field: String,
+    #[serde(rename = "type")]
+    pub trip_type: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -64,12 +64,12 @@ pub struct Line {
 #[serde(rename_all = "camelCase")]
 pub struct Operation {
     pub sum: f64,
+    pub type_name: String,
     // pub id: String,
     // pub trip_count: i64,
     // #[serde(rename = "type")]
     // pub type_field: String,
     // pub type_id: String,
-    // pub type_name: String,
     // pub icon: String,
 }
 
