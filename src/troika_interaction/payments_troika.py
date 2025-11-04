@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 
 from aiogram import Router
 from aiogram.fsm.context import FSMContext
@@ -47,7 +48,7 @@ async def show_tariff_options(callback_query: CallbackQuery):
 
     buttons = []
     for product in products:
-        button_text = f"🧾 | {product.name} за {product.price} рублей"
+        button_text = f"🧾 | {re.sub(r'\s{2,}', ' ', product.name.strip())} за {product.price} рублей"
         buttons.append([InlineKeyboardButton(text=button_text,
                                              callback_data=f"choosepay_{card_number}_{product.price}_{product.id}")])
     buttons.append([InlineKeyboardButton(text="⬅️ | Назад", callback_data=f"back_to_card_{card_number}")])
@@ -171,29 +172,20 @@ async def process_payment(callback_query: CallbackQuery, state: FSMContext):
     card_number_data = troika_data.card.cardNumber
     linked_card_id = troika_data.card.uid
 
-    data = await state.get_data()
-    refresh_token = data.get("refresh_token")
-    if refresh_token:
-        access_token, refresh_token = get_new_access_token(refresh_token)
-        await state.update_data(
-            access_token=access_token,
-            refresh_token=refresh_token
-        )
-    else:
-        access_token = None
-
     payload = {
         "callbackUrl": "mosmetro://redirect/payment",
         "cardUid": linked_card_id,
         "paymentSum": payment_sum,
+        "fiscalization": {
+            "email": "NoneMail@not.ru"
+        },
         "paymentType": payment_type,
         "saleType": "prepaid",
         "ticketId": product_id
     }
     print(payload)
     headers = {
-        "User-Agent": "MosMetro/4.2.3 (7874) (Android; samsung SM-A155F; 15; 2629830780)",
-        "Authorization": f"Bearer {access_token}"
+        "User-Agent": "MosMetro/4.2.3 (7874) (Android; samsung SM-A155F; 15; 2629830780)"
     }
 
     payment_response = requests.post("https://lk.mosmetro.ru/api/payments/v1.0", json=payload, headers=headers)
@@ -243,14 +235,14 @@ async def process_payment(callback_query: CallbackQuery, state: FSMContext):
                             show_alert=True)
                         await callback_query.message.edit_reply_markup(reply_markup=keyboard)
                         break
-    else:
-        if not refresh_token:
-            error_msg = await callback_query.message.answer(
-                f"💱🚫 <b>На текущий момент, способ оплаты неактивен и не отвечает с стороны сервера. "
-                f"Пожалуйста попробуйте позднее произвести данную операцию.</b>",
-                show_alert=True)
-            await asyncio.sleep(15)
-            await error_msg.delete()
+    # else:
+    #     if not refresh_token:
+    #         error_msg = await callback_query.message.answer(
+    #             f"💱🚫 <b>На текущий момент, способ оплаты неактивен и не отвечает с стороны сервера. "
+    #             f"Пожалуйста попробуйте позднее произвести данную операцию.</b>",
+    #             show_alert=True)
+    #         await asyncio.sleep(15)
+    #         await error_msg.delete()
         # else:
         #     get_new_access_token(refresh_token)
 

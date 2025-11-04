@@ -230,16 +230,16 @@
 
   // Список часовых поясов России
   russian_timezones: {
-    'Europe/Kaliningrad': 'Калининград – UTC+2',
-    'Europe/Moscow': 'Москва – UTC+3',
-    'Europe/Samara': 'Самара – UTC+4',
-    'Asia/Yekaterinburg': 'Екатеринбург – UTC+5',
-    'Asia/Omsk': 'Омск – UTC+6',
-    'Asia/Krasnoyarsk': 'Красноярск – UTC+7',
-    'Asia/Irkutsk': 'Иркутск – UTC+8',
-    'Asia/Yakutsk': 'Якутск – UTC+9',
-    'Asia/Vladivostok': 'Владивосток – UTC+10',
-    'Asia/Kamchatka': 'Камчатка – UTC+12'
+    'Europe/Kaliningrad': 'Калининград – UTC+2 – MSK-1',
+    'Europe/Moscow': 'Москва – UTC+3 – MSK+0',
+    'Europe/Samara': 'Самара – UTC+4 – MSK+1',
+    'Asia/Yekaterinburg': 'Екатеринбург – UTC+5 – MSK+2',
+    'Asia/Omsk': 'Омск – UTC+6 – MSK+3',
+    'Asia/Krasnoyarsk': 'Красноярск – UTC+7 – MSK+4',
+    'Asia/Irkutsk': 'Иркутск – UTC+8 – MSK+5',
+    'Asia/Yakutsk': 'Якутск – UTC+9 – MSK+6',
+    'Asia/Vladivostok': 'Владивосток – UTC+10 – MSK+7',
+    'Asia/Kamchatka': 'Камчатка – UTC+12 – MSK+9'
   },
 
   // Список стран и их эмодзи

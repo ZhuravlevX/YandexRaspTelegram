@@ -22,10 +22,11 @@ from aiogram.client.default import DefaultBotProperties
 from src.requests.get_intercity_bus_info import get_intercity_bus_info
 from src.requests.get_plane_info import get_plane_info
 from src.requests.get_suburban_info import get_suburban_info
+from src.requests.get_token_authorization import get_new_access_token
 from src.requests.get_train_info import get_train_info
 from src.requests.get_tramway_info import get_tramway_info
 from src.requests.get_underground_info import get_underground_info
-from src.requests.get_transport_card_info import get_troika_info
+from src.requests.get_transport_card_info import get_troika_info, get_transport_card_info
 from src.utils.load_config import load_config
 from src.route_select.route_selector import route_selector
 from src.troika_interaction.payments_troika import troika_pay
@@ -65,7 +66,8 @@ last_update_time = {
     "underground": {},
     "train": {},
     "intercity_bus": {},
-    "plane": {}
+    "plane": {},
+    "transport_card": {}
 }
 
 
@@ -143,8 +145,8 @@ async def handle_manual_update(callback_query: CallbackQuery, state: FSMContext)
     await callback_query.answer()
 
 
-
-async def update_suburbans(message: Message, user_id: int, state: FSMContext, from_station: str, to_station: str, express_type: bool):
+async def update_suburbans(message: Message, user_id: int, state: FSMContext, from_station: str, to_station: str,
+                           express_type: bool):
     data = await state.get_data()
     tz = timezone(data.get('timezone', 'Europe/Moscow'))
 
@@ -157,8 +159,10 @@ async def update_suburbans(message: Message, user_id: int, state: FSMContext, fr
         print(f"updatesuburban_{to_station}_{from_station}_{str(express_type)}")
         additional_text = f"\n🏫 <b>Последнее обновление в {current_time}. Вы можете обновить или сделать инверсию расписание вручную раз в минуту.</b>"
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔄 | Обновить", callback_data=f"updatesuburban_{from_station}_{to_station}_{str(express_type)}"),
-            InlineKeyboardButton(text="🔁 | Инверсия", callback_data=f"updatesuburban_{to_station}_{from_station}_{str(express_type)}")],
+            [InlineKeyboardButton(text="🔄 | Обновить",
+                                  callback_data=f"updatesuburban_{from_station}_{to_station}_{str(express_type)}"),
+             InlineKeyboardButton(text="🔁 | Инверсия",
+                                  callback_data=f"updatesuburban_{to_station}_{from_station}_{str(express_type)}")],
             [InlineKeyboardButton(text="🗑 | Удалить расписание", callback_data="delete_message")]
         ])
         train_info += additional_text
@@ -785,7 +789,12 @@ async def troika_search_handler(message: Message):
 @dp.message(Command("transportcard"))
 async def transport_card_handler(message: Message, state: FSMContext):
     data = await state.get_data()
+    user_id = message.chat.id
     refresh_token = data.get("refresh_token")
+    access_token = data.get("access_token")
+    time_end_token = data.get("time_end_token")
+
+    await message.delete()
 
     if not refresh_token:
         keyboard = InlineKeyboardMarkup(
@@ -800,8 +809,100 @@ async def transport_card_handler(message: Message, state: FSMContext):
             reply_markup=keyboard
         )
     else:
-        await message.answer("Вы уже авторизованы. Здесь будет ваша информация по транспортной карте.")
-    await message.delete()
+        current_time = datetime.now().strftime('%H:%M')
+        now = datetime.now()
+
+        info_message = await message.answer("<b>👤⌛ Получаем данные транспортных карт с личного кабинета...</b>")
+
+        if not time_end_token or time_end_token < now.timestamp():
+            new_access_token, time_sec = get_new_access_token(refresh_token)
+            new_time_end_token = now + timedelta(seconds=time_sec-300)
+            await state.update_data(
+                access_token=new_access_token,
+                time_end_token=new_time_end_token.timestamp()
+            )
+            card_info = get_transport_card_info(new_access_token)
+        else:
+            card_info = get_transport_card_info(access_token)
+
+        if card_info:
+            additional_text = f"\n👤 <b>Последнее обновление в {current_time}. Вы можете обновить расписание вручную раз в минуту.</b>"
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔄 | Обновить информацию", callback_data="manual_update_transportcard")],
+                [InlineKeyboardButton(text="🗑 | Удалить информацию", callback_data="delete_message")]
+            ])
+            card_info += additional_text
+            last_update_time["transport_card"][user_id] = datetime.now()
+            await info_message.edit_text(card_info, reply_markup=keyboard)
+        else:
+            await info_message.edit_text(
+                "👤🚫 <b>К сожалению не удалось получить данные транспортных карт с личного кабинета. Возможно вы не привязали ни одну транспортную карту к личному кабинету.</b>"
+            )
+
+
+@dp.callback_query(lambda c: c.data == "manual_update_transportcard")
+async def handle_manual_update_transport_card(callback_query: types.CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    now = datetime.now()
+
+    last_time = last_update_time["transport_card"].get(user_id)
+    if last_time and now - last_time < timedelta(minutes=1):
+        await callback_query.answer("🔄 Подождите немного перед следующим обновлением.", show_alert=True)
+        return
+
+    last_update_time["transport_card"][user_id] = now
+    await update_transport_card(callback_query.message, user_id, state)
+    await callback_query.answer("👤🔄 Данные транспортных карт с личного кабинета обновлены.")
+
+
+async def update_transport_card(message: Message, user_id: int, state: FSMContext):
+    data = await state.get_data()
+    refresh_token = data.get("refresh_token")
+    current_time = datetime.now().strftime('%H:%M')
+    access_token = data.get("access_token")
+    time_end_token = data.get("time_end_token")
+    now = datetime.now()
+
+
+
+    if not refresh_token:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="📎 | Авторизоваться в личный кабинет",
+                                      callback_data="authorize_transportcard")]
+            ]
+        )
+        await message.edit_text(
+            '👤🚫 <b>К сожалению не удалось получить данные транспортных карт с личного кабинета. Возможно вы вышли из личного кабинета. '
+            'Для того, чтобы просматривать информацию об своих привязанных транспортных картах, необходимо авторизоваться по своему номеру телефона, '
+            'к которому привязан ваш личный кабинет.</b>',
+            reply_markup=keyboard
+        )
+
+    if not time_end_token or time_end_token < now.timestamp():
+        new_access_token, time_sec = get_new_access_token(refresh_token)
+        new_time_end_token = now + timedelta(seconds=time_sec-300)
+        await state.update_data(
+            access_token=new_access_token,
+            time_end_token=new_time_end_token.timestamp()
+        )
+        card_info = get_transport_card_info(new_access_token)
+    else:
+        card_info = get_transport_card_info(access_token)
+
+    if card_info:
+        additional_text = f"\n👤 <b>Последнее обновление в {current_time}. Вы можете обновить информацию вручную раз в минуту.</b>"
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔄 | Обновить информацию", callback_data="manual_update_transportcard")],
+            [InlineKeyboardButton(text="🗑 | Удалить информацию", callback_data="delete_message")]
+        ])
+        card_info += additional_text
+        await message.edit_text(card_info, reply_markup=keyboard)
+    else:
+        await message.edit_text(
+            "👤🚫 <b>К сожалению не удалось получить данные транспортных карт с личного кабинета. "
+            "Возможно вы не привязали ни одну транспортную карту к личному кабинету."
+        )
 
 
 # Settings
