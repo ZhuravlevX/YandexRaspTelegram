@@ -33,6 +33,7 @@ pub struct CardInfo {
     pub card_type_name: String,
     pub display_name: String,
     pub card_type: String,
+    pub img: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -46,8 +47,6 @@ pub struct Balance {
 #[serde(rename_all = "camelCase")]
 pub struct DeferredAction {
     pub operation_name: String,
-    pub ticket_name: String,
-    pub ticket_type: String,
     pub sum: f64,
     pub date: i64,
 }

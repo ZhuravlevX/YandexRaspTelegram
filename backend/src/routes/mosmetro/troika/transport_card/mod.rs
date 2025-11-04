@@ -4,7 +4,7 @@ pub mod refresh_token;
 
 use crate::types::mosmetro::troika::linked_cards::{DeferredAction, LinkedCardsResponse, Ticket};
 use crate::types::mosmetro::troika::operations::{
-    DeferredWrite, OperationsResponse, Payment, Transfer,
+    DeferredWrite, OperationsResponse, Payment, Transfer, VtPayment,
 };
 use crate::types::mosmetro::troika::trips::TripsResponse;
 use crate::types::mosmetro::troika::{linked_cards, operations, trips};
@@ -14,7 +14,6 @@ use actix_web::http::StatusCode;
 use actix_web::{error, get, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::time::SystemTime;
 
 macro_rules! is_success_response {
     ($response:ident) => {
@@ -32,11 +31,11 @@ macro_rules! is_success_response {
 #[derive(Deserialize)]
 struct QueryParams {
     access_token: String,
-    // card_number: Option<String>,
+    linked_card_id: Option<String>,
 }
 
 #[get("/")]
-pub async fn get_my_transport_card(
+pub async fn get_transport_card(
     query: web::Query<QueryParams>,
     env: web::Data<Environment>,
     client: web::Data<reqwest::Client>,
@@ -55,47 +54,75 @@ pub async fn get_my_transport_card(
         .await
         .map_err(|e| error::ErrorInternalServerError(format!("{:?}", e)))?;
 
-    let mut response = Response::default();
+    match &query.linked_card_id {
+        None => {
+            let mut response = Response::default();
 
-    response.cards = linked_cards
-        .data
-        .cards
-        .into_iter()
-        .map(Into::into)
-        .collect();
+            response.cards = linked_cards
+                .data
+                .cards
+                .into_iter()
+                .map(Into::into)
+                .collect();
 
-    response.waiting_link_cards = linked_cards
-        .data
-        .waiting_link_cards
-        .into_iter()
-        .map(Into::into)
-        .collect();
+            response.waiting_link_cards = linked_cards
+                .data
+                .waiting_link_cards
+                .into_iter()
+                .map(Into::into)
+                .collect();
 
-    for card in response.cards.iter_mut() {
-        card.operations =
-            fetch_operations(client.clone(), &card.linked_card_id, &query.access_token).await?;
-        card.trips = fetch_trips(client.clone(), &card.linked_card_id, &query.access_token).await?;
+            for card in response.cards.iter_mut() {
+                card.operations =
+                    fetch_operations(client.clone(), &card.linked_card_id, &query.access_token, 1)
+                        .await?;
+                card.trips =
+                    fetch_trips(client.clone(), &card.linked_card_id, &query.access_token, 1)
+                        .await?;
+            }
+
+            Ok(HttpResponse::Ok().json(response))
+        }
+        Some(linked_card_id) => {
+            let card = linked_cards
+                .data
+                .cards
+                .into_iter()
+                .find(|card| &card.card.linked_card_id == linked_card_id)
+                .ok_or(error::ErrorNotFound(
+                    "Cannot find card with given linked card id",
+                ))?;
+            let mut response_card = Card::from(card);
+
+            response_card.operations =
+                fetch_operations(client.clone(), linked_card_id, &query.access_token, 3).await?;
+            response_card.trips =
+                fetch_trips(client.clone(), linked_card_id, &query.access_token, 3).await?;
+
+            Ok(HttpResponse::Ok().json(response_card))
+        }
     }
-
-    Ok(HttpResponse::Ok().json(response))
 }
 
 async fn fetch_operations(
     client: web::Data<reqwest::Client>,
     card_id: &String,
     access_token: &String,
+    size: u8,
 ) -> error::Result<Vec<Operation>> {
-    let now = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-
+    // let now = SystemTime::now()
+    //     .duration_since(SystemTime::UNIX_EPOCH)
+    //     .unwrap()
+    //     .as_millis();
     // ,
     // "periodStartDateUtc": now,
     // "periodEndDateUtc": now - (30*24*60*60*1000)
 
     let operations_response = client
-        .post("https://lk.mosmetro.ru/api/operations/v1.0?size=1&pageToken=")
+        .post(format!(
+            "https://lk.mosmetro.ru/api/operations/v1.0?size={}&pageToken=",
+            size
+        ))
         .bearer_auth(access_token)
         .json(&json!({
             "linkedCardIds": [card_id],
@@ -119,10 +146,11 @@ async fn fetch_trips(
     client: web::Data<reqwest::Client>,
     card_id: &String,
     access_token: &String,
+    size: u8,
 ) -> error::Result<Vec<Trip>> {
     let trips_response = client
         .get(format!(
-            "https://lk.mosmetro.ru/api/trips/v1.0?size=1&pageToken=&linkedCardIds={card_id}"
+            "https://lk.mosmetro.ru/api/trips/v1.0?size={size}&pageToken=&linkedCardIds={card_id}"
         ))
         .bearer_auth(access_token)
         .send()
@@ -151,6 +179,7 @@ pub struct Card {
     pub linked_card_id: String,
     pub card_type_name: String,
     pub display_name: String,
+    pub img: String,
     pub card_type: String,
     pub status: String,
     pub balance: i32,
@@ -178,6 +207,7 @@ impl From<linked_cards::Card> for Card {
                 .unwrap_or_else(|| card.card.card_number),
             card_type_name: card.card.card_type_name,
             display_name: card.card.display_name,
+            img: format!("https://lk.mosmetro.ru/api{}", card.card.img),
             card_type: card.card.card_type,
             linked_card_id: card.card.linked_card_id,
             status: card.status,
@@ -204,17 +234,19 @@ pub struct Operation {
     pub payment: Option<Payment>,
     pub deferred_write: Option<DeferredWrite>,
     pub transfer: Option<Transfer>,
+    pub vt_payment: Option<VtPayment>,
 }
 
 impl From<operations::Item> for Operation {
-    fn from(value: operations::Item) -> Self {
+    fn from(operation: operations::Item) -> Self {
         Self {
-            operation_name: value.display_name,
-            date: value.date,
-            operation_type: value.operation_type,
-            deferred_write: value.deferred_write,
-            transfer: value.transfer,
-            payment: value.payment,
+            operation_name: operation.display_name,
+            date: operation.date,
+            operation_type: operation.operation_type,
+            deferred_write: operation.deferred_write,
+            transfer: operation.transfer,
+            payment: operation.payment,
+            vt_payment: operation.vt_payment,
         }
     }
 }
@@ -233,16 +265,16 @@ pub struct Trip {
 }
 
 impl From<trips::Item> for Trip {
-    fn from(value: trips::Item) -> Self {
+    fn from(trip: trips::Item) -> Self {
         Self {
-            trip_name: value.display_name,
-            trip_type: value.trip.trip_type,
-            product_type_name: value.operation.type_name,
-            date: value.trip.date,
-            is_face_pay: value.trip.is_face_pay,
-            sum: value.operation.sum as i32,
-            kind: value.trip.ground_details.map(|details| details.kind),
-            line_name: value
+            trip_name: trip.display_name,
+            trip_type: trip.trip.trip_type,
+            product_type_name: trip.operation.type_name,
+            date: trip.trip.date,
+            is_face_pay: trip.trip.is_face_pay,
+            sum: trip.operation.sum as i32,
+            kind: trip.trip.ground_details.map(|details| details.kind),
+            line_name: trip
                 .trip
                 .metro_details
                 .and_then(|details| details.lines.first().map(|line| line.name.clone())),

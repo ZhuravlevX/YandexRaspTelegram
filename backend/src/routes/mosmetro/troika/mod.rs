@@ -1,2 +1,2 @@
 pub mod card_number;
-pub mod my_transport_card;
+pub mod transport_card;

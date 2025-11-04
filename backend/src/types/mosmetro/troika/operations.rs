@@ -25,8 +25,27 @@ pub struct Item {
     pub payment: Option<Payment>,
     pub deferred_write: Option<DeferredWrite>,
     pub transfer: Option<Transfer>,
+    pub vt_payment: Option<VtPayment>,
     // pub id: String,
     // pub card: Card,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VtPayment {
+    pub purchases: Vec<VtPurchase>,
+    // pub total_amount: f64,
+    // pub payment_type: String,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct VtPurchase {
+    pub amount: f64,
+    pub product: Product,
+    pub receipt_url: Option<String>,
+    // pub purchase_type: String,
+    // pub payment_status: String,
 }
 
 // #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -59,10 +78,10 @@ pub struct Payment {
 pub struct Product {
     pub product_id: String,
     pub product_name: String,
+    pub wallet: bool,
     // pub product_type: String,
     // pub icon: String,
     // pub img: String,
-    // pub wallet: bool,
     // pub vtb_product_id: String,
 }
 
@@ -70,13 +89,14 @@ pub struct Product {
 #[serde(rename_all = "camelCase")]
 pub struct Transfer {
     pub product: Product,
-    pub balance: f64,
-    pub destination_card: DestinationCard,
+    pub destination_card: Option<DestinationCard>,
+    pub source_card: Option<SourceCard>,
+    // pub balance: f64,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DestinationCard {
+pub struct SourceCard {
     pub card_number: String,
     pub display_name: String,
     pub limited: bool,
@@ -85,22 +105,19 @@ pub struct DestinationCard {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DeferredWrite {
-    pub sum: f64,
-    pub card_balance: f64,
-    pub product: Product2,
-    pub device_type_name: String,
-    pub device_type_id: String,
+pub struct DestinationCard {
+    pub card_number: String,
+    pub display_name: String,
+    // pub limited: bool,
+    pub card_type: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Product2 {
-    pub product_id: String,
-    pub product_type: String,
-    pub product_name: String,
-    pub icon: String,
-    pub img: String,
-    pub wallet: bool,
-    pub vtb_product_id: String,
+pub struct DeferredWrite {
+    pub sum: f64,
+    pub product: Product,
+    // pub card_balance: f64,
+    // pub device_type_name: String,
+    // pub device_type_id: String,
 }
