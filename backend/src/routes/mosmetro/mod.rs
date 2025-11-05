@@ -1,7 +1,6 @@
 use crate::routes::mosmetro::route::get_route;
 use crate::routes::mosmetro::station::{get_station, get_station_mini};
 use crate::routes::mosmetro::troika::card_number::get_troika_by_card_number;
-use crate::routes::mosmetro::troika::transport_card::connect_otp::get_connect_otp;
 use crate::routes::mosmetro::troika::transport_card::get_transport_card;
 use crate::routes::mosmetro::wagons::get_wagons;
 use crate::state::AppState;
@@ -26,11 +25,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
             .service(
                 web::scope("/troika")
                     .service(get_troika_by_card_number)
-                    .service(
-                        web::scope("/transport_card")
-                            .service(get_transport_card)
-                            .service(get_connect_otp),
-                    ),
+                    .service(web::scope("/transport_card").service(get_transport_card)),
             )
             .service(get_schema)
             .service(get_notifications)

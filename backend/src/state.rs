@@ -14,7 +14,7 @@ pub struct AppState {
     pub notifications: Arc<RwLock<Option<Vec<Notification>>>>,
     pub route_cache: Cache<String, RouterResponse>,
     // pub route_cache: Arc<RwLock<HashMap<String, RouterResponse>>>,
-    pub suggest_cache: Cache<String, RouteDataResponse>,
+    pub suggest_cache: Cache<(Option<String>, String), RouteDataResponse>,
     pub env: Environment,
 }
 
