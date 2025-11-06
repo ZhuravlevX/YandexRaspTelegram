@@ -7,6 +7,7 @@ class Config(BaseModel):
     tramway_urls: list[str]
     train_urls: list[str]
     plane_urls: list[str]
+    scooters_urls: list[str]
     suburban_map: dict[str, str]
     numbers_trains_maps_emojis: dict[str, str]
     numbers_trains_maps_title: dict[str, str]

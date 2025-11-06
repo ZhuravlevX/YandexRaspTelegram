@@ -33,6 +33,7 @@ last_update_time = {
     "plane": {}
 }
 
+
 # Suburbans
 @schedule.message(Command('suburban'))
 async def send_suburbans(message: Message, state: FSMContext):

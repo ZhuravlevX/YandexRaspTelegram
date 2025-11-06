@@ -16,6 +16,7 @@ last_update_time = {
     "transport_card": {}
 }
 
+
 @transport_card.message(Command('troika'))
 async def troika_search_handler(message: Message):
     parts = message.text.strip().split()
@@ -105,9 +106,10 @@ async def transport_card_handler(message: Message, state: FSMContext):
         info_message = await message.answer("👤⌛ <b>Получаем данные транспортных карт с личного кабинета...</b>")
 
         if not time_end_token or time_end_token < now.timestamp():
-            await info_message.edit_text('👤🔄 <b>Обновляем авторизацию личного кабинета для получения транспортных карт... Пожалуйста подождите...</b>')
+            await info_message.edit_text(
+                '👤🔄 <b>Обновляем авторизацию личного кабинета для получения транспортных карт... Пожалуйста подождите...</b>')
             new_access_token, time_sec = get_new_access_token(refresh_token)
-            new_time_end_token = now + timedelta(seconds=time_sec-300)
+            new_time_end_token = now + timedelta(seconds=time_sec - 300)
             await state.update_data(
                 access_token=new_access_token,
                 time_end_token=new_time_end_token.timestamp()
@@ -154,8 +156,6 @@ async def update_transport_card(message: Message, callback_query: types.Callback
     time_end_token = data.get("time_end_token")
     now = datetime.now()
 
-
-
     if not refresh_token:
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
@@ -171,9 +171,10 @@ async def update_transport_card(message: Message, callback_query: types.Callback
         )
 
     if not time_end_token or time_end_token < now.timestamp():
-        await callback_query.answer('👤🔄 Обновляем авторизацию личного кабинета для получения транспортных карт... Пожалуйста подождите...')
+        await callback_query.answer(
+            '👤🔄 Обновляем авторизацию личного кабинета для получения транспортных карт... Пожалуйста подождите...')
         new_access_token, time_sec = get_new_access_token(refresh_token)
-        new_time_end_token = now + timedelta(seconds=time_sec-300)
+        new_time_end_token = now + timedelta(seconds=time_sec - 300)
         await state.update_data(
             access_token=new_access_token,
             time_end_token=new_time_end_token.timestamp()

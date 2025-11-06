@@ -16,6 +16,7 @@ from aiogram.client.default import DefaultBotProperties
 from src.commands.debug import debug
 from src.commands.feedback import feedback
 from src.commands.schedule import schedule
+from src.commands.scooters import scooters
 from src.commands.support_telegram_stars import support
 from src.route_select.route_selector import route_selector
 from src.troika_interaction.payments_troika import troika_pay
@@ -38,6 +39,7 @@ dp.include_router(support)
 dp.include_router(debug)
 dp.include_router(feedback)
 dp.include_router(schedule)
+dp.include_router(scooters)
 
 config = load_config()
 suburban_urls = config.suburban_urls

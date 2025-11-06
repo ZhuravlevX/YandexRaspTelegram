@@ -66,6 +66,14 @@
     'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/Rossiya%2C_VP-BZR%2C_Airbus_A320-214_%2842498458970%29.jpg/960px-Rossiya%2C_VP-BZR%2C_Airbus_A320-214_%2842498458970%29.jpg'
   ],
 
+  // Список ссылок на картинки поездов дальнего следования для ответов бота
+  scooters_urls: [
+    'https://icmos-s3.aif.ru/entity/001/160/illustration_largeimage_b84772747f6b4fe2c487c41cf80768d1.jpg',
+    'https://icmos-s3.aif.ru/entity/000/774/illustration_largeimage_d279c2d589a0f129dee6dcd013f1aaad.jpg',
+    'https://s0.rbk.ru/v6_top_pics/media/img/8/21/347391716312218.jpeg',
+    'https://www.m24.ru/b/d/nBkSUhL2h1Emm8e2JL6BrNOp2Z3z8Zj21iDEh_fH_nKUPXuaDyXTjHou4MVO6BCVoZKf9GqVe5Q_CPawk214LyWK9G1N5ho=-OYutzb4blHZaa6rxdCxSA.jpg'
+  ],
+
   // Список эмодзи для разных типов пригородных поездов
   suburban_map: {
     'Экспресс': '🚅',
