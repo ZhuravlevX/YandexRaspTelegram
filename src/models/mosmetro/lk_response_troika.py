@@ -35,33 +35,32 @@ class WaitingLinkCard(BaseModel):
 class DestinationCard(BaseModel):
     cardNumber: str
     displayName: str
-    limited: bool
+    cardType: str
+
+
+class SourceCard(BaseModel):
+    cardNumber: str
+    displayName: str
     cardType: str
 
 
 class Payment(BaseModel):
-    income: bool
-    sum: float
-    sourceType: str
-    sourcePaymentType: str
+    sum: int
     receiptUrl: Optional[str] = None
     product: Product
 
 
 class Transfer(BaseModel):
     product: Product
-    balance: int
-    destinationCard: DestinationCard
+    destinationCard: Optional[DestinationCard]
+    sourceCard: Optional[SourceCard]
 
 
 class Product(BaseModel):
     productId: str
-    productType: Optional[str] = None
     productName: str
-    icon: Optional[str] = None
-    img: Optional[str] = None
-    wallet: Optional[bool] = None
-    vtbProductId: Optional[str] = None
+    wallet: bool
+
 
 class Operation(BaseModel):
     operationName: str
@@ -70,14 +69,22 @@ class Operation(BaseModel):
     payment: Optional[Payment]
     deferredWrite: Optional[DeferredWrite]
     transfer: Optional[Transfer]
+    vtPayment: Optional[VtPayment]
+
+
+class Purchase(BaseModel):
+    amount: int
+    product: Product
+    receiptUrl: Optional[str] = None
+
+
+class VtPayment(BaseModel):
+    purchases: List[Purchase]
 
 
 class DeferredWrite(BaseModel):
     sum: int
-    cardBalance: int
     product: Product
-    deviceTypeName: str
-    deviceTypeId: str
 
 
 class Card(BaseModel):

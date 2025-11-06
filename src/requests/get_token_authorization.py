@@ -27,6 +27,3 @@ def get_new_access_token(refresh_token: str):
         logging.warning(f"API request error: {response.text}")
         return None
     return profile.access_token, profile.expires_in
-
-if __name__ == "__main__":
-    print(get_new_access_token())

@@ -35,8 +35,8 @@ def get_troika_info(card_number: str) -> str | None:
     products = troika_data.availableProducts
 
     troika_info = (
-        f"💳 <b>{troika.displayName} | Номер карты: {troika.cardNumber}</b>\n"
-        f"<i>{'Лимитированная транспортная карта «' + troika.limited + '»' if troika.limited else 'Обычная транспортная карта'}</i>\n"
+        f"💳 <b>Карта «Тройка» | Номер карты: {troika.cardNumber}</b>\n"
+        f"<i>{'Лимитированная транспортная карта «' + re.sub(r'[^0-9а-яА-Я\-]', '', troika.limited) + '»' if troika.limited else 'Обычная транспортная карта'}</i>\n"
     )
 
     products_info = ""
@@ -51,7 +51,7 @@ def get_troika_info(card_number: str) -> str | None:
 
 def get_transport_card_info(access_token: str) -> str | None:
     response = requests.get(
-        f"{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/troika/my_transport_card/?access_token={access_token}")
+        f"{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/troika/transport_card/?access_token={access_token}")
     troika_info = []
     troikaWaiting_info = []
     info_parts = []
@@ -73,7 +73,6 @@ def get_transport_card_info(access_token: str) -> str | None:
         #     "User-Agent": "MosMetro/4.2.3 (7874) (Android; samsung SM-A155F; 15; 2629830780)",
         #     "Authorization": f"Bearer {access_token}"
         # }
-
         # trips_url = f"{os.getenv("LK_MOSMETRO_API_URL")}/trips/v1.0?size=1&pageToken=&linkedCardIds={card.linkedCardId}"
         # trips_response = requests.get(trips_url, headers=headers)
         # lk_troika_trips = Trips(**trips_response.json())
@@ -90,13 +89,16 @@ def get_transport_card_info(access_token: str) -> str | None:
         # operations = lk_troika_operations.data.items
 
         if card.cardType == "troika":
-            title_card = (f"Карта «{card.cardTypeName}» |"
+            title_card = (f"💳 Карта «{card.cardTypeName}» |"
                           f" {card.cardNumber} |"
                           f" «{card.displayName}»")
         elif card.cardType == "social":
-            title_card = (f"«{card.cardTypeName}» |"
+            title_card = (f"💳 «{card.cardTypeName}» |"
                           f" {card.cardNumber} |"
                           f" «{card.displayName}»")
+        elif card.cardType == "virtual":
+            title_card = (f"💠 {card.cardTypeName} |"
+                          f" {card.cardNumber}")
 
         if card.unbalance:
             balanced_card = (f'Текущий баланс: {card.balance} рублей\n'
@@ -186,6 +188,16 @@ def get_transport_card_info(access_token: str) -> str | None:
                     operationsName = (f'Перенос баланса c транспортной карты'
                                       f' «{card.operations[0].transfer.sourceCard.displayName}» с номером {card.operations[0].transfer.sourceCard.cardNumber}'
                                       f' ({formatted_date})')
+            elif card.operations[0].operationType == 'vtPayment':
+                if card.operations[0].vtPayment.purchases[0].product.wallet:
+                    operationsName = (f'Пополнение на'
+                                      f' {card.operations[0].vtPayment.purchases[0].amount} рублей'
+                                      f' ({formatted_date})')
+                else:
+                    operationsName = (f'Покупка тарифа'
+                                      f' «{re.sub(r'\s{2,}', ' ', card.operations[0].vtPayment.purchases[0].product.productName.strip())}»'
+                                      f' ({formatted_date})')
+
 
         # if operations:
         #     dt = datetime.fromtimestamp(operations[0].date / 1000)
@@ -227,7 +239,7 @@ def get_transport_card_info(access_token: str) -> str | None:
         #         else:
         #             tripsName = f'{trips[0].displayName} | {trips[0].operation.sum:.0f} рублей ({formatted_date}) | {kind_emojis.get(trips[0].trip.groundDetails.kind, "🚈")}'
 
-        this_transport_card_info = f'💳 <b>{title_card}</b>\n' \
+        this_transport_card_info = f'<b>{title_card}</b>\n' \
                                    f'<i>{balanced_card}</i>\n' \
                                    f'<i>Тариф: {tickets_card}\n</i>' \
                                    f'<i>Последняя операция: {operationsName}\n</i>' \
@@ -277,7 +289,7 @@ def get_transport_card_info(access_token: str) -> str | None:
 
     if info_parts:
         msg = (
-                'ℹ <b>Информация об привязанных транспортных картах в личном кабинете:</b>\n\n'
+                'ℹ <b>Информация об привязанных транспортных картах в личном кабинете</b>\n\n'
                 + '\n'.join(info_parts)
         )
 
