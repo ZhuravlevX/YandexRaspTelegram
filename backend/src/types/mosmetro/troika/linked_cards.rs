@@ -29,6 +29,8 @@ pub struct Card {
 pub struct CardInfo {
     pub card_number: String,
     pub social_card_number: Option<String>,
+    pub limited: bool,
+    pub limited_edition_name: Option<String>,
     pub linked_card_id: String,
     pub card_type_name: String,
     pub display_name: String,

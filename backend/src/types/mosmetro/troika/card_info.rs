@@ -32,7 +32,7 @@ pub struct CardInfoCard {
 pub struct AvailableProduct {
     pub id: String,
     pub name: String,
-    pub descr: String,
+    pub descr: Option<String>,
     #[serde(rename(deserialize = "priceMin"))]
     pub price: f64,
 }

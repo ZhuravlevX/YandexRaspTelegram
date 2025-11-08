@@ -35,7 +35,8 @@ pub async fn get_troika_by_card_number(
 
     let mut card_info_response = client
         .get(format!(
-            "https://lk.mosmetro.ru/api/cards/v1.0/{card_uid}/validate/payment"
+            "{}/cards/v1.0/{card_uid}/validate/payment",
+            env.lk_mosmetro_api_url
         ))
         .insert_header((
             "User-Agent",

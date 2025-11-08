@@ -2,6 +2,7 @@ pub mod connect_otp;
 pub mod connect_token;
 pub mod refresh_token;
 
+use crate::types::mosmetro::troika::card_info::{AvailableProduct, CardInfoResponse};
 use crate::types::mosmetro::troika::linked_cards::{DeferredAction, LinkedCardsResponse, Ticket};
 use crate::types::mosmetro::troika::operations::{
     DeferredWrite, OperationsResponse, Payment, Transfer, VtPayment,
@@ -98,10 +99,79 @@ pub async fn get_transport_card(
                 fetch_operations(client.clone(), linked_card_id, &query.access_token, 3).await?;
             response_card.trips =
                 fetch_trips(client.clone(), linked_card_id, &query.access_token, 3).await?;
+            if response_card.card_type == "virtual" {
+                response_card.available_products = fetch_virtual_available_products(
+                    client.clone(),
+                    linked_card_id,
+                    &query.access_token,
+                )
+                .await
+                .unwrap_or_default();
+            } else {
+                response_card.available_products =
+                    fetch_available_products(client.clone(), linked_card_id, &query.access_token)
+                        .await
+                        .unwrap_or_default();
+            }
 
             Ok(HttpResponse::Ok().json(response_card))
         }
     }
+}
+
+async fn fetch_available_products(
+    client: web::Data<reqwest::Client>,
+    card_id: &String,
+    access_token: &String,
+) -> error::Result<Vec<AvailableProduct>> {
+    let operations_response = client
+        .get(format!(
+            "https://lk.mosmetro.ru/api/carriers/v1.0/{card_id}/validate/payment"
+        ))
+        .bearer_auth(access_token)
+        .send()
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+
+    is_success_response!(operations_response);
+
+    let operations = operations_response
+        .json::<CardInfoResponse>()
+        .await
+        .map_err(|e| error::ErrorInternalServerError(format!("{:?}", e)))?;
+
+    Ok(operations.data.available_products)
+}
+
+async fn fetch_virtual_available_products(
+    client: web::Data<reqwest::Client>,
+    card_id: &String,
+    access_token: &String,
+) -> error::Result<Vec<AvailableProduct>> {
+    #[derive(Deserialize)]
+    struct Response {
+        products: Vec<AvailableProduct>,
+    }
+    let operations_response = client
+        .post(format!(
+            "https://lk.mosmetro.ru/api/virtualTroika/v1.0/{card_id}/products"
+        ))
+        .bearer_auth(access_token)
+        .json(&json!({
+            "knot": true
+        }))
+        .send()
+        .await
+        .map_err(error::ErrorInternalServerError)?;
+
+    is_success_response!(operations_response);
+
+    let operations = operations_response
+        .json::<Response>()
+        .await
+        .map_err(|e| error::ErrorInternalServerError(format!("{:?}", e)))?;
+
+    Ok(operations.products)
 }
 
 async fn fetch_operations(
@@ -179,6 +249,8 @@ pub struct Card {
     pub linked_card_id: String,
     pub card_type_name: String,
     pub display_name: String,
+    pub limited: bool,
+    pub limited_edition_name: Option<String>,
     pub img: String,
     pub card_type: String,
     pub status: String,
@@ -188,6 +260,7 @@ pub struct Card {
     pub untickets: Vec<DeferredAction>,
     pub operations: Vec<Operation>,
     pub trips: Vec<Trip>,
+    pub available_products: Vec<AvailableProduct>,
 }
 
 impl From<linked_cards::Card> for Card {
@@ -207,6 +280,8 @@ impl From<linked_cards::Card> for Card {
                 .unwrap_or_else(|| card.card.card_number),
             card_type_name: card.card.card_type_name,
             display_name: card.card.display_name,
+            limited: card.card.limited,
+            limited_edition_name: card.card.limited_edition_name,
             img: format!("https://lk.mosmetro.ru/api{}", card.card.img),
             card_type: card.card.card_type,
             linked_card_id: card.card.linked_card_id,
@@ -221,6 +296,7 @@ impl From<linked_cards::Card> for Card {
             tickets: card.tickets,
             operations: Vec::new(),
             trips: Vec::new(),
+            available_products: Vec::new(),
         }
     }
 }
