@@ -4,11 +4,14 @@ from typing import List
 import requests
 
 from src.models.mosmetro.search_response_underground import RouterResponse, Part, StationMini, Wagons, Train
+from src.utils.load_config import load_config
+
+config = load_config()
 
 
 def get_train(station_id, next_station_id) -> Train | None:
     try:
-        res = requests.get(f'{os.getenv("BACKEND_URL")}/wagons/{station_id}')
+        res = requests.get(f'{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/wagons/{station_id}')
         if res.ok:
             wagons = Wagons(**res.json()).data
             for w in wagons.values():
@@ -22,7 +25,7 @@ def get_train(station_id, next_station_id) -> Train | None:
 def build_part(part: Part, last):
     if len(part.nodes) < 2: return ''
     first_station = part.nodes[0]
-    msg = f'<b>Прибытие поезда на «{first_station.name}» ({first_station.lineName}): </b>'
+    msg = f'<b>Прибытие поезда на «{first_station.name}» ({first_station.lineName} {config.line_emojis.get(first_station.lineName, "🚈")}): </b>'
 
     train = get_train(first_station.id, part.nodes[1].id)
 
@@ -70,13 +73,13 @@ def build_part(part: Part, last):
 
 
 def stations_to_str(stations: List[StationMini]):
-    s = f'<b><i>«{stations[0].name}»</i> ({stations[0].lineName}) ➡ <i>«{stations[-1].name}»</i> ({stations[-1].lineName})</b>'
+    s = f'<b><i>«{stations[0].name}»</i> ({stations[0].lineName} {config.line_emojis.get(stations[-1].lineName, "🚈")}) ➡ <i>«{stations[-1].name}»</i> ({stations[-1].lineName} {config.line_emojis.get(stations[-1].lineName, "🚈")})</b>'
 
     return s
 
 
 def build_route_message(route: RouterResponse, start_time: datetime):
-    msg = f'<b>↔ Путь от «{route.parts[0].nodes[0].name}» ({route.parts[0].nodes[0].lineName}) до «{route.parts[-1].nodes[-1].name}» ({route.parts[-1].nodes[-1].lineName})</b>\n\n<b><i>От</i></b> '
+    msg = f'<b>↔ Путь от «{route.parts[0].nodes[0].name}» ({route.parts[0].nodes[0].lineName} {config.line_emojis.get(route.parts[0].nodes[0].lineName, "🚈")}) до «{route.parts[-1].nodes[-1].name}» ({route.parts[-1].nodes[-1].lineName} {config.line_emojis.get(route.parts[-1].nodes[-1].lineName, "🚈")})</b>\n\n<b><i>От</i></b> '
     for part in route.parts[:-1]:
         msg += stations_to_str(part.nodes)
         msg += ' ↪ '

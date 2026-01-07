@@ -6,10 +6,8 @@ from datetime import timedelta, datetime
 import requests
 from babel.dates import format_datetime
 
-from src.models.mosmetro.lk_response_troika import LKTroika
-from src.models.mosmetro.operations_card import Operations
+from src.models.mosmetro.lk_response_troika import LKTroika, Card
 from src.models.mosmetro.search_response_troika import Troika
-from src.models.mosmetro.trips_card import Trips
 from src.utils.load_config import load_config
 
 config = load_config()
@@ -35,7 +33,7 @@ def get_troika_info(card_number: str) -> str | None:
     products = troika_data.availableProducts
 
     troika_info = (
-        f"💳 <b>Карта «Тройка» | Номер карты: {troika.cardNumber}</b>\n"
+        f"💳 <b>Карта «Тройка» | {troika.cardNumber}</b>\n"
         f"<i>{'Лимитированная транспортная карта «' + re.sub(r'[^0-9а-яА-Я\-]', '', troika.limited) + '»' if troika.limited else 'Обычная транспортная карта'}</i>\n"
     )
 
@@ -47,6 +45,168 @@ def get_troika_info(card_number: str) -> str | None:
     if not troika_info:
         return None, None
     return msg, troika.img
+
+
+def get_lk_troika_info(linked_card, access_token) -> str | None:
+    response = requests.get(f"{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/troika/transport_card/?access_token={access_token}&linked_card_id={linked_card}")
+    msg = ""
+    info_parts = []
+
+    if not response.ok:
+        logging.warning(f"API request error: {response.text}")
+        return None
+
+    lk_troika_data = Card(**response.json())
+    operations = lk_troika_data.operations
+    trips = lk_troika_data.trips
+
+    if lk_troika_data.tickets:
+        end_ticket_data = datetime.today() + timedelta(days=lk_troika_data.tickets[0].remainDayCount - 1)
+        status_ticket = "Активный" if lk_troika_data.tickets[0].isActive else "Неактивный"
+        tickets_card = (f'{re.sub(r'\s{2,}', ' ', lk_troika_data.tickets[0].ticketName.strip())} |'
+                        f' {status_ticket} |'
+                        f' {lk_troika_data.tickets[0].remainDayCount} дней ({format_datetime(end_ticket_data, "'до' d MMMM YYYY 'г.'", locale='ru')})')
+    else:
+        tickets_card = 'Отсутствует'
+
+    if lk_troika_data.unbalance:
+        balanced_card = (f'Текущий баланс: {lk_troika_data.balance} рублей\n'
+                         f'Незаписанный баланс: {lk_troika_data.unbalance} рублей')
+    else:
+        balanced_card = f'Текущий баланс: {lk_troika_data.balance} рублей'
+
+    if lk_troika_data.status == "action":
+        status_card = 'Активная (✅️)'
+    elif lk_troika_data.status == "blocked":
+        status_card = 'Заблокирована (🚫)'
+    elif lk_troika_data.status == "transfer":
+        status_card = 'Готова к переносу (↪)'
+    elif lk_troika_data.status == "annulled":
+        status_card = 'Аннулирована (🛑)'
+        balanced_card = 'Текущий баланс: 0 рублей'
+
+    if lk_troika_data.cardType == 'virtual':
+        display_troika = f'💠 <b>{lk_troika_data.displayName} | {lk_troika_data.cardNumber}</b>'
+    elif lk_troika_data.cardType == 'troika':
+        display_troika = f'💳 <b>Карта «{lk_troika_data.cardTypeName}» | {lk_troika_data.cardNumber} | «{lk_troika_data.displayName}»</b>'
+    elif lk_troika_data.cardType == 'social':
+        display_troika = f'💳 <b>{lk_troika_data.cardTypeName} | {lk_troika_data.cardNumber} | «{lk_troika_data.displayName}»</b>'
+
+
+    troika_info = (
+        f"<b>{display_troika}</b>\n"
+         f"<i>{'Лимитированная транспортная карта «' + re.sub(r'[^0-9а-яА-Я\-]', '', lk_troika_data.limitedEditionName) + '»' if lk_troika_data.limited else 'Обычная транспортная карта'}</i>\n"
+        f"<i>{balanced_card}</i>\n"
+        f"<i>Тариф: {tickets_card}</i>\n"
+        f"<b>Статус: {status_card}</b>\n"
+    )
+
+    trips_info = ""
+    for i, trip in enumerate(trips[:3], start=1):
+        dt = datetime.fromtimestamp(trip.date / 1000)
+        formatted_date = format_datetime(dt, "d MMMM 'в' HH:mm", locale='ru')
+
+        if trip.tripType in ('metro', 'mcd'):
+            if trip.sum == 0 or trip.sum is None:
+                tripsName = (
+                    f'{trip.tripName} ({trip.lineName}) | '
+                    f'Бесплатный проезд по тарифу «{re.sub(r"\s{2,}", " ", trip.productTypeName.strip())}» '
+                    f'({formatted_date}) | '
+                    f'{config.line_emojis.get(f"{trip.lineName} линия", config.line_emojis.get(trip.lineName, "🚆"))}'
+                )
+            else:
+                tripsName = (
+                    f'{trip.tripName} ({trip.lineName}) | '
+                    f'{trip.sum} рублей ({formatted_date}) | '
+                    f'{config.line_emojis.get(f"{trip.lineName} линия", config.line_emojis.get(trip.lineName, "🚆"))}'
+                )
+        elif trip.tripType == 'ground':
+            if trip.sum == 0 or trip.sum is None:
+                tripsName = (
+                    f'{trip.tripName} | '
+                    f'Бесплатный проезд по тарифу «{re.sub(r"\s{2,}", " ", trip.productTypeName.strip())}» '
+                    f'({formatted_date}) | '
+                    f'{kind_emojis.get(trip.kind, "🚆")}'
+                )
+            else:
+                tripsName = (
+                    f'{trip.tripName} | '
+                    f'{trip.sum} рублей ({formatted_date}) | '
+                    f'{kind_emojis.get(trip.kind, "🚆")}'
+                )
+
+        trips_info += f"{['1️⃣', '2️⃣', '3️⃣'][i - 1]} <i> | {tripsName}</i>\n"
+
+    operations_info = ""
+    for i, operation in enumerate(operations[:3], start=1):
+        if operation:
+            dt = datetime.fromtimestamp(operation.date / 1000)
+            formatted_date = format_datetime(dt, "d MMMM 'в' HH:mm", locale='ru')
+
+            if operation.operationType == 'payment':
+                if operation.payment.product.wallet:
+                    operationsName = (f'Пополнение баланса |'
+                                      f' {operation.payment.sum} рублей'
+                                      f' ({formatted_date})')
+                else:
+                    operationsName = (f'Покупка тарифа |'
+                                      f' «{re.sub(r"\s{2,}", " ", operation.payment.product.productName.strip())}»'
+                                      f' ({formatted_date})')
+            elif operation.operationType == 'deferred':
+                if operation.payment.product.wallet:
+                    operationsName = (f'Удаленное пополнение баланса |'
+                                      f' {operation.payment.sum} рублей'
+                                      f' ({formatted_date})')
+                else:
+                    operationsName = (f'Удаленная покупка тарифа |'
+                                      f' «{re.sub(r"\s{2,}", " ", operation.payment.product.productName.strip())}»'
+                                      f' ({formatted_date})')
+            elif operation.operationType == 'deferredWrite':
+                if operation.deferredWrite.product.wallet:
+                    operationsName = (f'Запись пополнения баланса |'
+                                      f' {operation.deferredWrite.sum:.0f} рублей'
+                                      f' ({formatted_date})')
+                else:
+                    operationsName = (f'Запись тарифа |'
+                                      f' «{re.sub(r"\s{2,}", " ", operation.deferredWrite.product.productName.strip())}»'
+                                      f' ({formatted_date})')
+            elif operation.operationType == 'transfer':
+                if operation.transfer.destinationCard:
+                    operationsName = (f'Перенос баланса |'
+                                      f' «{operation.transfer.destinationCard.displayName}»'
+                                      f' ({formatted_date})')
+                else:
+                    operationsName = (f'Получения переноса баланса |'
+                                      f' «{operation.transfer.sourceCard.displayName}»'
+                                      f' ({formatted_date})')
+            elif operation.operationType == 'vtPayment':
+                if operation.vtPayment.purchases[0].product.wallet:
+                    operationsName = (f'Пополнение баланса |'
+                                      f' {operation.vtPayment.purchases[0].amount} рублей'
+                                      f' ({formatted_date})')
+                else:
+                    operationsName = (f'Покупка тарифа |'
+                                      f' «{re.sub(r"\s{2,}", " ", operation.vtPayment.purchases[0].product.productName.strip())}»'
+                                      f' ({formatted_date})')
+
+            operations_info += f"{['1️⃣', '2️⃣', '3️⃣'][i - 1]} <i> | {operationsName}</i>\n"
+
+    if troika_info:
+        info_parts.append(troika_info)
+    if trips_info:
+        info_parts.append('<b>Последние поездки:</b>\n' + trips_info)
+    if operations_info:
+        info_parts.append('<b>Последние операции:</b>\n' + operations_info)
+
+    if info_parts:
+        msg = (
+                'ℹ <b>Информация об транспортной карте из личного кабинета и доступных для данной транспортной карты взаимодействие</b>\n\n'
+                + '\n'.join(info_parts)
+        )
+
+    if not troika_info:
+        return None, None
+    return msg, lk_troika_data.img
 
 
 def get_transport_card_info(access_token: str) -> str | None:
@@ -68,25 +228,6 @@ def get_transport_card_info(access_token: str) -> str | None:
     for card in troika:
         operationsName = 'Отсутствует'
         tripsName = 'Отсутствует'
-
-        # headers = {
-        #     "User-Agent": "MosMetro/4.2.3 (7874) (Android; samsung SM-A155F; 15; 2629830780)",
-        #     "Authorization": f"Bearer {access_token}"
-        # }
-        # trips_url = f"{os.getenv("LK_MOSMETRO_API_URL")}/trips/v1.0?size=1&pageToken=&linkedCardIds={card.linkedCardId}"
-        # trips_response = requests.get(trips_url, headers=headers)
-        # lk_troika_trips = Trips(**trips_response.json())
-        # trips = lk_troika_trips.data.items
-        #
-        # operations_payload = {
-        #     "linkedCardIds": [card.linkedCardId],
-        #     "operationTypes": []
-        # }
-        #
-        # operations_url = f"{os.getenv("LK_MOSMETRO_API_URL")}/operations/v1.0?size=1&pageToken="
-        # operations_response = requests.post(operations_url, json=operations_payload, headers=headers)
-        # lk_troika_operations = Operations(**operations_response.json())
-        # operations = lk_troika_operations.data.items
 
         if card.cardType == "troika":
             title_card = (f"💳 Карта «{card.cardTypeName}» |"
@@ -133,20 +274,20 @@ def get_transport_card_info(access_token: str) -> str | None:
                 if card.trips[0].sum == 0 or card.trips[0].sum is None:
                     tripsName = (f'{card.trips[0].tripName} ({card.trips[0].lineName}) |'
                                  f' Бесплатный проезд по тарифу «{re.sub(r'\s{2,}', ' ', card.trips[0].productTypeName.strip())}» ({formatted_date}) |'
-                                 f' {config.line_emojis.get(f"{card.trips[0].lineName} линия", config.line_emojis.get(card.trips[0].lineName, "🚈"))}')
+                                 f' {config.line_emojis.get(f"{card.trips[0].lineName} линия", config.line_emojis.get(card.trips[0].lineName, "🚆"))}')
                 else:
                     tripsName = (f'{card.trips[0].tripName} ({card.trips[0].lineName}) |'
                                  f' {card.trips[0].sum} рублей ({formatted_date}) |'
-                                 f' {config.line_emojis.get(f"{card.trips[0].lineName} линия", config.line_emojis.get(card.trips[0].lineName, "🚈"))}')
+                                 f' {config.line_emojis.get(f"{card.trips[0].lineName} линия", config.line_emojis.get(card.trips[0].lineName, "🚆"))}')
             elif card.trips[0].tripType == 'ground':
                 if card.trips[0].sum == 0 or card.trips[0].sum is None:
                     tripsName = (f'{card.trips[0].tripName} |'
                                  f' Бесплатный проезд по тарифу «{re.sub(r'\s{2,}', ' ', card.trips[0].productTypeName.strip())}» ({formatted_date}) |'
-                                 f' {kind_emojis.get(card.trips[0].kind, "🚈")}')
+                                 f' {kind_emojis.get(card.trips[0].kind, "🚆")}')
                 else:
                     tripsName = (f'{card.trips[0].tripName} |'
                                  f' {card.trips[0].sum} рублей ({formatted_date}) |'
-                                 f' {kind_emojis.get(card.trips[0].kind, "🚈")}')
+                                 f' {kind_emojis.get(card.trips[0].kind, "🚆")}')
 
         if card.operations:
             dt = datetime.fromtimestamp(card.operations[0].date / 1000)
@@ -154,90 +295,49 @@ def get_transport_card_info(access_token: str) -> str | None:
 
             if card.operations[0].operationType == 'payment':
                 if card.operations[0].payment.product.wallet:
-                    operationsName = (f'Пополнение на'
+                    operationsName = (f'Пополнение баланса |'
                                       f' {card.operations[0].payment.sum} рублей'
                                       f' ({formatted_date})')
                 else:
-                    operationsName = (f'Покупка тарифа'
+                    operationsName = (f'Покупка тарифа |'
                                       f' «{re.sub(r'\s{2,}', ' ', card.operations[0].payment.product.productName.strip())}»'
                                       f' ({formatted_date})')
             elif card.operations[0].operationType == 'deferred':
                 if card.operations[0].payment.product.wallet:
-                    operationsName = (f'Удаленное пополнение на'
+                    operationsName = (f'Удаленное пополнение баланса |'
                                       f' {card.operations[0].payment.sum} рублей'
                                       f' ({formatted_date})')
                 else:
-                    operationsName = (f'Удаленная покупка тарифа '
-                                      f'«{re.sub(r'\s{2,}', ' ', card.operations[0].payment.product.productName.strip())}» '
-                                      f'({formatted_date})')
+                    operationsName = (f'Удаленная покупка тарифа |'
+                                      f' «{re.sub(r'\s{2,}', ' ', card.operations[0].payment.product.productName.strip())}» '
+                                      f' ({formatted_date})')
             elif card.operations[0].operationType == 'deferredWrite':
                 if card.operations[0].deferredWrite.product.wallet:
-                    operationsName = (f'Запись пополнения баланса на'
+                    operationsName = (f'Запись пополнения баланса |'
                                       f' {card.operations[0].deferredWrite.sum:.0f} рублей'
                                       f' ({formatted_date})')
                 else:
-                    operationsName = (f'Запись тарифа'
+                    operationsName = (f'Запись тарифа |'
                                       f' «{re.sub(r'\s{2,}', ' ', card.operations[0].deferredWrite.product.productName.strip())}»'
                                       f' на транспортную карту ({formatted_date})')
             elif card.operations[0].operationType == 'transfer':
                 if card.operations[0].transfer.destinationCard:
-                    operationsName = (f'Перенос баланса на транспортную карту'
+                    operationsName = (f'Перенос баланса |'
                                       f' «{card.operations[0].transfer.destinationCard.displayName}» с номером {card.operations[0].transfer.destinationCard.cardNumber}'
                                       f' ({formatted_date})')
                 else:
-                    operationsName = (f'Перенос баланса c транспортной карты'
-                                      f' «{card.operations[0].transfer.sourceCard.displayName}» с номером {card.operations[0].transfer.sourceCard.cardNumber}'
+                    operationsName = (f'Получения переноса баланса |'
+                                      f' «{card.operations[0].transfer.sourceCard.displayName}»'
                                       f' ({formatted_date})')
             elif card.operations[0].operationType == 'vtPayment':
                 if card.operations[0].vtPayment.purchases[0].product.wallet:
-                    operationsName = (f'Пополнение на'
+                    operationsName = (f'Пополнение баланса |'
                                       f' {card.operations[0].vtPayment.purchases[0].amount} рублей'
                                       f' ({formatted_date})')
                 else:
-                    operationsName = (f'Покупка тарифа'
+                    operationsName = (f'Покупка тарифа |'
                                       f' «{re.sub(r'\s{2,}', ' ', card.operations[0].vtPayment.purchases[0].product.productName.strip())}»'
                                       f' ({formatted_date})')
-
-
-        # if operations:
-        #     dt = datetime.fromtimestamp(operations[0].date / 1000)
-        #     formatted_date = format_datetime(dt, "d MMMM 'в' HH:mm", locale='ru')
-        #
-        #     if operations[0].type == 'payment':
-        #         if operations[0].payment.product.wallet:
-        #             operationsName = f'Пополнение на {operations[0].payment.sum:.0f} рублей ({formatted_date})'
-        #         else:
-        #             operationsName = f'Покупка тарифа «{re.sub(r'\s{2,}', ' ', operations[0].payment.product.productName.strip())}» ({formatted_date})'
-        #     elif operations[0].type == 'deferred':
-        #         if operations[0].payment.product.wallet:
-        #             operationsName = f'Удаленное пополнение на {operations[0].payment.sum:.0f} рублей ({formatted_date})'
-        #         else:
-        #             operationsName = f'Удаленная покупка тарифа «{re.sub(r'\s{2,}', ' ', operations[0].payment.product.productName.strip())}» ({formatted_date})'
-        #     elif operations[0].type == 'deferredWrite':
-        #         if operations[0].deferredWrite.product.wallet:
-        #             operationsName = f'Запись пополнения баланса на {operations[0].deferredWrite.sum:.0f} рублей ({formatted_date})'
-        #         else:
-        #             operationsName = f'Запись тарифа «{re.sub(r'\s{2,}', ' ', operations[0].deferredWrite.product.productName.strip())}» на транспортную карту ({formatted_date})'
-        #     elif operations[0].type == 'transfer':
-        #         if operations[0].transfer.destinationCard:
-        #             operationsName = f'Перенос баланса на транспортную карту «{operations[0].transfer.destinationCard.displayName}» с номером {operations[0].transfer.destinationCard.cardNumber} ({formatted_date})'
-        #         else:
-        #             operationsName = f'Перенос баланса c транспортной карты «{operations[0].transfer.sourceCard.displayName}» с номером {operations[0].transfer.sourceCard.cardNumber} ({formatted_date})'
-        #
-        # if trips:
-        #     dt = datetime.fromtimestamp(trips[0].trip.date / 1000)
-        #     formatted_date = format_datetime(dt, "d MMMM 'в' HH:mm", locale='ru')
-        #
-        #     if trips[0].trip.type == 'metro' or trips[0].trip.type == 'mcd':
-        #         if trips[0].operation.sum == 0 or trips[0].operation.sum is None:
-        #             tripsName = f'{trips[0].displayName} ({trips[0].trip.metroDetails.lines[0].name}) | Бесплатный проезд по тарифу «{re.sub(r'\s{2,}', ' ', trips[0].operation.typeName.strip())}» ({formatted_date}) | {config.line_emojis.get(f"{trips[0].trip.metroDetails.lines[0].name} линия", config.line_emojis.get(trips[0].trip.metroDetails.lines[0].name, "🚈"))}'
-        #         else:
-        #             tripsName = f'{trips[0].displayName} ({trips[0].trip.metroDetails.lines[0].name}) | {trips[0].operation.sum:.0f} рублей ({formatted_date}) | {config.line_emojis.get(f"{trips[0].trip.metroDetails.lines[0].name} линия", config.line_emojis.get(trips[0].trip.metroDetails.lines[0].name, "🚈"))}'
-        #     elif trips[0].trip.type == 'ground':
-        #         if trips[0].operation.sum == 0 or trips[0].operation.sum is None:
-        #             tripsName = f'{trips[0].displayName} | Бесплатный проезд по тарифу «{re.sub(r'\s{2,}', ' ', trips[0].operation.typeName.strip())}» ({formatted_date}) | {kind_emojis.get(trips[0].trip.groundDetails.kind, "🚈")}'
-        #         else:
-        #             tripsName = f'{trips[0].displayName} | {trips[0].operation.sum:.0f} рублей ({formatted_date}) | {kind_emojis.get(trips[0].trip.groundDetails.kind, "🚈")}'
 
         this_transport_card_info = f'<b>{title_card}</b>\n' \
                                    f'<i>{balanced_card}</i>\n' \
@@ -274,11 +374,10 @@ def get_transport_card_info(access_token: str) -> str | None:
             waitingCards_description = f'Запишите пополнение {waitingCards.linkByPaymentState.confirmSum} рублей удобным для вас способом до окончания времени привязки'
             status_card_waiting = 'Ожидает запись пополнения (💳⚠️)'
 
-
         this_waiting_transport_card_info = f'💳 <b>Карта «{waitingCards.cardTypeName}» | {waitingCards.cardNumber} | «{waitingCards.displayName}»</b>\n' \
-                                   f'<i>{waitingCards_description}\n</i>' \
-                                   f'<i>{time_until_str}\n</i>' \
-                                   f'<b>Статус: {status_card_waiting}</b>\n'
+                                           f'<i>{waitingCards_description}\n</i>' \
+                                           f'<i>{time_until_str}\n</i>' \
+                                           f'<b>Статус: {status_card_waiting}</b>\n'
 
         troikaWaiting_info.append(this_waiting_transport_card_info)
 
