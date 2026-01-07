@@ -17,7 +17,7 @@ from src.commands.debug import debug
 from src.commands.feedback import feedback
 from src.commands.schedule import schedule
 from src.commands.scooters import scooters
-from src.commands.support_telegram_stars import support
+from src.commands.supports import support
 from src.route_select.route_selector import route_selector
 from src.troika_interaction.lk_troika import troika_lk
 from src.troika_interaction.payments_troika import troika_pay
