@@ -4,8 +4,8 @@ from pydantic import BaseModel
 
 
 class LKTroika(BaseModel):
-    cards: List[Card]
-    waitingLinkCards: List[WaitingLinkCard]
+    cards: Optional[List[Card]]
+    waitingLinkCards: Optional[List[WaitingLinkCard]]
 
 
 class Ticket(BaseModel):
@@ -87,6 +87,13 @@ class DeferredWrite(BaseModel):
     product: Product
 
 
+class AvailableProducts(BaseModel):
+    id: str
+    name: str
+    descr: Optional[str]
+    price: int
+
+
 class Card(BaseModel):
     cardNumber: str
     linkedCardId: str
@@ -94,12 +101,16 @@ class Card(BaseModel):
     displayName: str
     cardType: str
     status: str
+    img: Optional[str] = None
+    limited: Optional[bool] = None
+    limitedEditionName: Optional[str] = None
     balance: int
     unbalance: Optional[int]
     untickets: List
     tickets: List[Ticket]
     operations: List[Operation]
     trips: List[Trip]
+    availableProducts: Optional[List[AvailableProducts]]
 
 
 class Trip(BaseModel):
