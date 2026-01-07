@@ -10,7 +10,6 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKe
 import requests
 
 from src.models.mosmetro.search_response_troika import Troika
-from src.requests.get_token_authorization import get_new_access_token
 from src.requests.get_transport_card_info import get_troika_info
 from src.utils.load_config import load_config
 
@@ -183,7 +182,7 @@ async def process_payment(callback_query: CallbackQuery, state: FSMContext):
         "saleType": "prepaid",
         "ticketId": product_id
     }
-    print(payload)
+
     headers = {
         "User-Agent": "MosMetro/4.2.3 (7874) (Android; samsung SM-A155F; 15; 2629830780)"
     }

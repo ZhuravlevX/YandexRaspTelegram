@@ -1,10 +1,14 @@
 import asyncio
+import os
 from datetime import datetime, timedelta
 
+import requests
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, InputMediaPhoto, URLInputFile
+
+from src.models.mosmetro.lk_response_troika import LKTroika
 from src.requests.get_token_authorization import get_new_access_token
 from src.requests.get_transport_card_info import get_troika_info, get_transport_card_info
 from src.utils.load_config import load_config
@@ -114,16 +118,35 @@ async def transport_card_handler(message: Message, state: FSMContext):
                 access_token=new_access_token,
                 time_end_token=new_time_end_token.timestamp()
             )
-            card_info = get_transport_card_info(new_access_token)
-        else:
-            card_info = get_transport_card_info(access_token)
+            access_token = new_access_token
+
+        url = f'{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/troika/transport_card/?access_token={access_token}'
+        card_info = get_transport_card_info(access_token)
 
         if card_info:
-            additional_text = f"\n👤 <b>Последнее обновление в {current_time}. Вы можете обновить расписание вручную раз в минуту.</b>"
-            keyboard = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="🔄 | Обновить информацию", callback_data="manual_update_transportcard")],
-                [InlineKeyboardButton(text="🗑 | Удалить информацию", callback_data="delete_message")]
+            response = requests.get(url)
+            lk_troika_data = LKTroika(**response.json())
+            troika = lk_troika_data.cards
+
+            buttons = []
+            for card in troika:
+                if card.cardType == 'virtual':
+                    text_card_name = f'💠 | {card.displayName} ({card.cardNumber})'
+                else:
+                    text_card_name = f'💳 | «{card.displayName}» ({card.cardNumber})'
+
+                button_text =text_card_name
+                buttons.append([InlineKeyboardButton(text=button_text,
+                                                     callback_data=f"lktroika_{card.linkedCardId}")])
+            buttons.append([
+                InlineKeyboardButton(text="🔄 | Обновить информацию", callback_data="manual_update_transportcard"),
+                InlineKeyboardButton(text="🗑 | Удалить информацию", callback_data="delete_message")
             ])
+
+            keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+            additional_text = f"\n👤 <b>Последнее обновление в {current_time}. Вы можете обновить расписание вручную раз в минуту.</b>"
             card_info += additional_text
             last_update_time["transport_card"][user_id] = datetime.now()
             await info_message.edit_text(card_info, reply_markup=keyboard)
@@ -144,11 +167,11 @@ async def handle_manual_update_transport_card(callback_query: types.CallbackQuer
         return
 
     last_update_time["transport_card"][user_id] = now
-    await update_transport_card(callback_query.message, callback_query, user_id, state)
+    await update_transport_card(callback_query.message, callback_query, state)
     await callback_query.answer("👤🔄 Данные транспортных карт с личного кабинета обновлены.")
 
 
-async def update_transport_card(message: Message, callback_query: types.CallbackQuery, user_id: int, state: FSMContext):
+async def update_transport_card(message: Message, callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     refresh_token = data.get("refresh_token")
     current_time = datetime.now().strftime('%H:%M')
@@ -185,10 +208,27 @@ async def update_transport_card(message: Message, callback_query: types.Callback
 
     if card_info:
         additional_text = f"\n👤 <b>Последнее обновление в {current_time}. Вы можете обновить информацию вручную раз в минуту.</b>"
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔄 | Обновить информацию", callback_data="manual_update_transportcard")],
-            [InlineKeyboardButton(text="🗑 | Удалить информацию", callback_data="delete_message")]
+        url = f'{os.getenv("BACKEND_URL")}{os.getenv("PORT")}/mosmetro/troika/transport_card/?access_token={access_token}'
+        response = requests.get(url)
+        lk_troika_data = LKTroika(**response.json())
+        troika = lk_troika_data.cards
+
+        buttons = []
+        for card in troika:
+            if card.cardType == 'virtual':
+                text_card_name = f'💠 | {card.displayName} ({card.cardNumber})'
+            else:
+                text_card_name = f'💳 | «{card.displayName}» ({card.cardNumber})'
+
+            button_text = text_card_name
+            buttons.append([InlineKeyboardButton(text=button_text,
+                                                 callback_data=f"lktroika_{card.linkedCardId}")])
+        buttons.append([
+            InlineKeyboardButton(text="🔄 | Обновить информацию", callback_data="manual_update_transportcard"),
+            InlineKeyboardButton(text="🗑 | Удалить информацию", callback_data="delete_message")
         ])
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
         card_info += additional_text
         await message.edit_text(card_info, reply_markup=keyboard)
     else:
