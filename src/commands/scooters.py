@@ -103,11 +103,11 @@ async def handle_manual_update_scooters(callback_query: types.CallbackQuery):
         return
 
     last_update_time["scooters"][user_id] = now
-    await update_scooters(callback_query.message, float(lat_locate), float(lon_locate))
+    await update_scooters(callback_query.message, callback_query, float(lat_locate), float(lon_locate))
     await callback_query.answer("🛴🔄 Данные об электросамокатах обновлены.")
 
 
-async def update_scooters(message: Message, lat: float, lon: float):
+async def update_scooters(message: Message, callback_query: types.CallbackQuery, lat: float, lon: float):
     user_id = message.chat.id
     current_time = datetime.now().strftime('%H:%M')
 
@@ -115,6 +115,7 @@ async def update_scooters(message: Message, lat: float, lon: float):
     random_image = scooters_image_selector.get_random_image()
 
     scooters_info = get_scooters_info(lat, lon)
+
     if scooters_info:
         additional_text = f"\n🛴 <b>Последнее обновление в {current_time}. Вы можете обновить данные об ближайших электросамокатах вручную раз в минуту.</b>"
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -127,6 +128,6 @@ async def update_scooters(message: Message, lat: float, lon: float):
         await message.bot.edit_message_media(chat_id=message.chat.id, message_id=message.message_id,
                                              reply_markup=keyboard, media=media)
     else:
-        await message.bot.edit_message_text(chat_id=message.chat.id, message_id=message,
-                                            text="🛴⚠ <b>В указанной вами точки вашего местоположения не найдены электросамокаты. "
-                                                 "Возможно, все доступные электросамокаты в радиусе 200 м. были разобраны.</b>")
+        await callback_query.answer("🛴⚠ В указанной вами точки вашего местоположения не найдены электросамокаты. "
+                                    "Возможно, все доступные электросамокаты в радиусе 200 м. были разобраны. "
+                                    "Пожалуйста, обновите информацию позже.", show_alert=True)

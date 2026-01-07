@@ -19,6 +19,7 @@ from src.commands.schedule import schedule
 from src.commands.scooters import scooters
 from src.commands.support_telegram_stars import support
 from src.route_select.route_selector import route_selector
+from src.troika_interaction.lk_troika import troika_lk
 from src.troika_interaction.payments_troika import troika_pay
 from src.troika_interaction.authorization_troika import troika_auth
 from src.commands.transport_card import transport_card
@@ -33,6 +34,7 @@ dp = Dispatcher(storage=MongoStorage(client=AsyncIOMotorClient()).from_url(
 dp.include_router(route_selector)
 dp.include_router(troika_pay)
 dp.include_router(troika_auth)
+dp.include_router(troika_lk)
 
 dp.include_router(transport_card)
 dp.include_router(support)
